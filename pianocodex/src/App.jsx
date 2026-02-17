@@ -430,9 +430,9 @@ function App() {
     <div className={`app-shell ${screen === 'game' ? 'game-mode' : 'menu-mode'}`}>
       {screen === 'landing' && (
         <main className="landing">
-          <h1>Piano Sightline</h1>
-          <p>Train your note reading speed with real-time microphone input.</p>
-          <button className="primary" onClick={() => setShowSettings(true)}>
+          <h1>Piano Drills</h1>
+          <p>Practice piano, learn faster, and have fun doing it.</p>
+          <button className="start-button" onClick={() => setShowSettings(true)}>
             Start
           </button>
           {micStatus === 'error' && (

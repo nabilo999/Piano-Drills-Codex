@@ -1,7 +1,7 @@
 ﻿:root {
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
-  color: #f6f8fa;
-  background: #0b1522;
+  color: #101214;
+  background: #f6f7f9;
 }
 
 * {
@@ -13,9 +13,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 10%, #213b5a 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, #5f3028 0%, transparent 40%),
-    #0b1522;
+    radial-gradient(circle at 15% 0%, #ffffff 0%, transparent 38%),
+    radial-gradient(circle at 88% 12%, #eceef2 0%, transparent 45%),
+    #f6f7f9;
 }
 
 button,
@@ -38,15 +38,22 @@ select {
   display: block;
 }
 
-.landing,
 .game-over {
   width: min(680px, 92vw);
-  border: 1px solid #2f455f;
-  background: rgba(7, 17, 28, 0.9);
+  border: 1px solid #d9dde3;
+  background: rgba(255, 255, 255, 0.94);
   border-radius: 20px;
   padding: 36px;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 40px rgba(19, 24, 30, 0.08);
+}
+
+.landing {
+  width: min(980px, 96vw);
+  text-align: center;
+  padding: 10px 20px 20px;
+  align-self: start;
+  margin-top: 4vh;
 }
 
 h1,
@@ -57,28 +64,56 @@ p {
 
 .landing p,
 .game-over p {
-  color: #cfd8e3;
+  color: #4f5761;
   margin-top: 12px;
   margin-bottom: 24px;
+}
+
+.landing h1 {
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.landing p {
+  font-size: clamp(0.98rem, 2.3vw, 1.2rem);
+  margin-bottom: 34px;
+}
+
+.start-button {
+  width: 150px;
+  height: 150px;
+  border: 2px solid #0f1113;
+  border-radius: 30px;
+  background: #ffffff;
+  color: #0f1113;
+  font-size: 1.12rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 17, 19, 0.14);
+}
+
+.start-button:hover {
+  filter: brightness(0.98);
 }
 
 .primary {
   border: none;
   border-radius: 12px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #f4ad4f, #df6e3c);
-  color: #101820;
+  background: linear-gradient(135deg, #0f1113, #24282d);
+  color: #ffffff;
   font-weight: 700;
   cursor: pointer;
 }
 
 .primary:hover {
-  filter: brightness(1.04);
+  filter: brightness(1.08);
 }
 
 .error {
   margin-top: 12px;
-  color: #ffc2c2;
+  color: #b62525;
 }
 
 .game {
@@ -93,11 +128,12 @@ p {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
-  background: rgba(8, 20, 34, 0.85);
-  border: 1px solid #2e4a67;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d9dde3;
   border-radius: 12px;
   padding: 10px 14px;
   font-weight: 600;
+  color: #14181c;
 }
 
 .lane {
@@ -107,9 +143,9 @@ p {
   border-radius: 16px;
   overflow: hidden;
   background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
-    #12243a;
-  border: 1px solid #2d4862;
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.88), rgba(244, 246, 249, 0.96)),
+    #f3f5f8;
+  border: 1px solid #d8dde5;
 }
 
 .staff {
@@ -120,7 +156,7 @@ p {
       to bottom,
       transparent 0,
       transparent 10%,
-      rgba(200, 214, 230, 0.15) 10.3%,
+      rgba(29, 36, 45, 0.16) 10.3%,
       transparent 10.6%
     );
 }
@@ -148,8 +184,8 @@ p {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: #ee7440;
-  color: #fff5ef;
+  background: #121417;
+  color: #ffffff;
   font-size: 0.72rem;
   font-weight: 800;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
@@ -166,7 +202,7 @@ p {
   top: 88%;
   left: 0;
   right: 0;
-  border-top: 3px dashed #f5b164;
+  border-top: 3px dashed #1c2127;
 }
 
 .piano-image {
@@ -184,7 +220,7 @@ p {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(1, 4, 8, 0.6);
+  background: rgba(8, 10, 13, 0.42);
   display: grid;
   place-items: center;
   padding: 18px;
@@ -193,11 +229,12 @@ p {
 .modal {
   width: min(430px, 94vw);
   border-radius: 16px;
-  border: 1px solid #3f5871;
-  background: #112236;
+  border: 1px solid #d8dde4;
+  background: #ffffff;
   padding: 20px;
   display: grid;
   gap: 14px;
+  color: #161a1f;
 }
 
 .modal label {
@@ -207,11 +244,11 @@ p {
 }
 
 .modal select {
-  border: 1px solid #38526e;
+  border: 1px solid #cfd5de;
   border-radius: 10px;
   padding: 9px;
-  background: #0b1a2b;
-  color: #f0f4f8;
+  background: #ffffff;
+  color: #171b21;
 }
 
 @media (max-width: 760px) {
@@ -224,4 +261,9 @@ p {
     width: 128px;
   }
 
+  .start-button {
+    width: 126px;
+    height: 126px;
+    border-radius: 26px;
+  }
 }
