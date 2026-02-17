@@ -129,6 +129,7 @@ p {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 160px;
+  z-index: 2;
 }
 
 .note-sprite {
@@ -168,35 +169,16 @@ p {
   border-top: 3px dashed #f5b164;
 }
 
-.mini-piano {
+.piano-image {
   position: absolute;
   left: 50%;
-  bottom: 0;
+  bottom: 6px;
   transform: translateX(-50%);
-  width: min(360px, 92vw);
-  padding: 14px 10px 12px;
-  border-top-left-radius: 14px;
-  border-top-right-radius: 14px;
-  background: #f1f3f7;
-}
-
-.white-keys {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.white-keys span {
-  display: grid;
-  place-items: end center;
-  height: 64px;
-  padding-bottom: 6px;
-  border-radius: 6px;
-  border: 1px solid #d6dbe2;
-  background: #ffffff;
-  color: #324052;
-  font-size: 0.78rem;
-  font-weight: 700;
+  width: min(540px, 78vw);
+  max-height: 18%;
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .modal-backdrop {

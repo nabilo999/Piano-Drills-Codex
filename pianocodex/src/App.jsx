@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import pianoImage from './assets/piano.png'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -480,13 +481,7 @@ function App() {
               )
             })}
             <div className="piano-line" />
-            <footer className="mini-piano">
-              <div className="white-keys">
-                {['C', 'D', 'E', 'F', 'G', 'A', 'B'].map((keyName) => (
-                  <span key={keyName}>{keyName}</span>
-                ))}
-              </div>
-            </footer>
+            <img className="piano-image" src={pianoImage} alt="Piano" />
           </section>
         </main>
       )}
