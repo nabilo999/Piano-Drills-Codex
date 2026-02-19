@@ -49,11 +49,18 @@ select {
 }
 
 .landing {
-  width: min(980px, 96vw);
+  width: 100%;
+  min-height: calc(100vh - 24px);
   text-align: center;
-  padding: 10px 20px 20px;
-  align-self: start;
-  margin-top: 4vh;
+  padding: 8vh 20px 24px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 h1,
@@ -70,6 +77,7 @@ p {
 }
 
 .landing h1 {
+  font-family: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: clamp(2.8rem, 8vw, 5.5rem);
   font-weight: 900;
   letter-spacing: 0.01em;
