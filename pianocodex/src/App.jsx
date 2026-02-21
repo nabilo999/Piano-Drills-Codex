@@ -138,6 +138,7 @@ function buildNightmareChord(rootMidi, pool) {
 
 function App() {
   const [screen, setScreen] = useState('landing')
+  const [showGamePicker, setShowGamePicker] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState({
     readSpeed: 3,
@@ -430,9 +431,8 @@ function App() {
     <div className={`app-shell ${screen === 'game' ? 'game-mode' : 'menu-mode'}`}>
       {screen === 'landing' && (
         <main className="landing">
-          <h1>Piano Drills</h1>
-          <p>Practice piano, learn faster, and have fun doing it.</p>
-          <button className="start-button" onClick={() => setShowSettings(true)}>
+          <h1 className="crawl-title">Piano Drills</h1>
+          <button className="start-button" onClick={() => setShowGamePicker(true)}>
             Start
           </button>
           {micStatus === 'error' && (
@@ -490,9 +490,14 @@ function App() {
         <main className="game-over">
           <h2>Game Over</h2>
           <p>Your score: {score}</p>
-          <button className="primary" onClick={() => setShowSettings(true)}>
-            Play Again
-          </button>
+          <div className="game-over-actions">
+            <button className="primary" onClick={() => setShowSettings(true)}>
+              Play Again
+            </button>
+            <button className="primary" onClick={() => setScreen('landing')}>
+              Title Screen
+            </button>
+          </div>
         </main>
       )}
 
@@ -561,6 +566,39 @@ function App() {
             >
               Begin
             </button>
+            <button className="secondary" onClick={() => setShowSettings(false)}>
+              Cancel
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {showGamePicker && (
+        <aside className="picker-backdrop" onClick={() => setShowGamePicker(false)}>
+          <div className="picker-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Select A Game</h2>
+            <div className="game-card-grid">
+              <button
+                className="game-card is-active"
+                onClick={() => {
+                  setShowGamePicker(false)
+                  setShowSettings(true)
+                }}
+              >
+                <div className="game-card-art" />
+                <span>Piano Arcade</span>
+              </button>
+
+              <button className="game-card" type="button" disabled>
+                <div className="game-card-art" />
+                <span>Placeholder</span>
+              </button>
+
+              <button className="game-card" type="button" disabled>
+                <div className="game-card-art" />
+                <span>Placeholder</span>
+              </button>
+            </div>
           </div>
         </aside>
       )}
