@@ -203,11 +203,37 @@ p {
     );
 }
 
+.bullet-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.bullet-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #0c0f12;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.particle-dot {
+  position: absolute;
+  width: 5.2px;
+  height: 5.2px;
+  border-radius: 999px;
+  background: #0c0f12;
+  transform: translate(-50%, -50%);
+}
+
 .note {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 160px;
-  z-index: 2;
+  z-index: 3;
 }
 
 .note-sprite {
@@ -324,13 +350,12 @@ p {
 }
 
 .game-card {
-  border: 1px solid #d1d7df;
-  border-radius: 16px;
-  background: #ffffff;
-  padding: 10px;
+  border: none;
+  background: transparent;
+  padding: 0;
   display: grid;
-  gap: 8px;
-  text-align: left;
+  gap: 10px;
+  text-align: center;
   color: #1a1f25;
 }
 
@@ -339,8 +364,7 @@ p {
 }
 
 .game-card.is-active:hover {
-  border-color: #0f1113;
-  box-shadow: 0 8px 18px rgba(12, 14, 17, 0.08);
+  filter: brightness(0.98);
 }
 
 .game-card:disabled {
@@ -358,6 +382,131 @@ p {
 .game-card span {
   font-size: 0.95rem;
   font-weight: 700;
+  text-align: center;
+}
+
+.ear-game-shell {
+  width: 100%;
+  min-height: calc(100vh - 24px);
+  display: grid;
+  place-items: center;
+}
+
+.ear-game-window {
+  width: min(1200px, 92vw);
+  height: min(860px, 90vh);
+  border-radius: 18px;
+  border: 1px solid #1f252d;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 40% 20%, #1b232d 0%, transparent 45%),
+    linear-gradient(180deg, #11151b 0%, #090b0f 100%);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.42);
+}
+
+.conductor-sprite,
+.conductor-fallback {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  transform: translateX(-50%);
+}
+
+.conductor-sprite {
+  width: min(340px, 34vw);
+  max-height: 42%;
+  object-fit: contain;
+}
+
+.conductor-fallback {
+  min-width: 180px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #2d3947;
+  background: rgba(12, 15, 21, 0.8);
+  color: #e8eff6;
+  text-transform: uppercase;
+  text-align: center;
+  font-weight: 700;
+}
+
+.round-badge {
+  position: absolute;
+  left: 22px;
+  top: 18px;
+  color: #f2f5fa;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.revolver-panel {
+  position: absolute;
+  left: 22px;
+  bottom: 24px;
+}
+
+.revolver-sprite {
+  width: min(210px, 24vw);
+  height: auto;
+}
+
+.revolver-fallback {
+  width: 160px;
+  height: 96px;
+  border-radius: 12px;
+  border: 1px solid #2d3947;
+  background: rgba(12, 15, 21, 0.82);
+  color: #f5f8fd;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.ear-right-ui {
+  position: absolute;
+  right: 22px;
+  top: 60%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 12px;
+  width: min(190px, 28vw);
+}
+
+.timer-pill {
+  border-radius: 12px;
+  border: 1px solid #2f3946;
+  background: rgba(8, 11, 15, 0.78);
+  color: #f6f9ff;
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.note-feedback {
+  border-radius: 12px;
+  border: 1px solid #2f3946;
+  background: rgba(8, 11, 15, 0.72);
+  color: #f6f9ff;
+  min-height: 66px;
+  display: grid;
+  place-items: center;
+  font-size: 1.22rem;
+  font-weight: 800;
+}
+
+.ear-game-over {
+  width: 100%;
+  min-height: calc(100vh - 24px);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 10px;
+  background: #000000;
+  color: #ffffff;
 }
 
 @media (max-width: 760px) {
@@ -379,5 +528,23 @@ p {
 
   .game-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ear-game-window {
+    width: 96vw;
+    height: 90vh;
+  }
+
+  .conductor-sprite {
+    width: min(260px, 60vw);
+  }
+
+  .ear-right-ui {
+    right: 12px;
+    width: min(140px, 34vw);
+  }
+
+  .timer-pill {
+    font-size: 1.5rem;
   }
 }

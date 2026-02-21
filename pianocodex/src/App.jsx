@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react'
+import * as Tone from 'tone'
 import './App.css'
 import pianoImage from './assets/piano.png'
 
@@ -11,6 +12,18 @@ const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
 const LEVEL_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
 const MOVEMENT_OPTIONS = ['staggered', 'classic']
 const NOTE_SPRITES = import.meta.glob('./notes/*.png', { eager: true, import: 'default' })
+const CONDUCTOR_SPRITES = import.meta.glob('./assets/conductor/*.png', {
+  eager: true,
+  import: 'default',
+})
+const REVOLVER_SPRITES = import.meta.glob('./assets/revolver/*.png', {
+  eager: true,
+  import: 'default',
+})
+const EAR_BACKGROUND = import.meta.glob('./assets/background.png', {
+  eager: true,
+  import: 'default',
+})
 const NOTE_SPRITE_MAP = Object.fromEntries(
   Object.entries(NOTE_SPRITES).map(([path, url]) => {
     const fileName = path.split('/').pop()
@@ -18,6 +31,14 @@ const NOTE_SPRITE_MAP = Object.fromEntries(
     return [key, url]
   }),
 )
+const CONDUCTOR_MAP = Object.fromEntries(
+  Object.entries(CONDUCTOR_SPRITES).map(([path, url]) => [path.split('/').pop(), url]),
+)
+const REVOLVER_MAP = Object.fromEntries(
+  Object.entries(REVOLVER_SPRITES).map(([path, url]) => [path.split('/').pop(), url]),
+)
+const EAR_BACKGROUND_URL = EAR_BACKGROUND['./assets/background.png'] ?? null
+const EAR_NOTE_POOL = [60, 62, 64, 65, 67, 69, 71]
 
 function midiToNoteName(midi) {
   const pitchClass = midi % 12
@@ -27,6 +48,10 @@ function midiToNoteName(midi) {
 
 function midiToDisplayName(midi) {
   return midiToNoteName(midi).replace('#', '♯')
+}
+
+function midiToSimpleLabel(midi) {
+  return NOTE_NAMES[midi % 12].replace('#', '♯')
 }
 
 function midiFromFrequency(freq) {
@@ -40,6 +65,14 @@ function midiToSpriteToken(midi) {
 function getNoteSprite(clef, midi) {
   const key = `${clef}_${midiToSpriteToken(midi)}`
   return NOTE_SPRITE_MAP[key] ?? null
+}
+
+function getConductorSprite(state) {
+  return CONDUCTOR_MAP[`${state}.png`] ?? null
+}
+
+function getRevolverSprite(shots) {
+  return REVOLVER_MAP[`${shots}_shots.png`] ?? null
 }
 
 function clamp(value, min, max) {
@@ -147,16 +180,30 @@ function App() {
   })
 
   const [notes, setNotes] = useState([])
+  const [bullets, setBullets] = useState([])
+  const [particles, setParticles] = useState([])
   const [lives, setLives] = useState(3)
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
   const [detectedNote, setDetectedNote] = useState('--')
   const [micStatus, setMicStatus] = useState('idle')
+  const [earRound, setEarRound] = useState(1)
+  const [earBulletsLoaded, setEarBulletsLoaded] = useState(0)
+  const [earTimerLeft, setEarTimerLeft] = useState(10)
+  const [earInputNote, setEarInputNote] = useState('--')
+  const [earConductorState, setEarConductorState] = useState('idle')
+  const [earHighestRound, setEarHighestRound] = useState(1)
 
   const rafRef = useRef(null)
   const lastFrameRef = useRef(0)
   const notePoolRef = useRef([])
   const gameStateRef = useRef(null)
+  const earTimeoutsRef = useRef([])
+  const toneRef = useRef({
+    sampler: null,
+    ready: false,
+    loadingPromise: null,
+  })
   const micRef = useRef({
     stream: null,
     audioContext: null,
@@ -185,11 +232,24 @@ function App() {
     }
   }
 
+  const clearEarTimeouts = () => {
+    for (const timeoutId of earTimeoutsRef.current) {
+      clearTimeout(timeoutId)
+    }
+    earTimeoutsRef.current = []
+  }
+
+  const scheduleEarTimeout = (fn, delayMs) => {
+    const timeoutId = setTimeout(fn, delayMs)
+    earTimeoutsRef.current.push(timeoutId)
+  }
+
   const stopGameLoop = () => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
+    clearEarTimeouts()
   }
 
   const endRun = () => {
@@ -217,6 +277,92 @@ function App() {
     }
 
     setMicStatus('ready')
+  }
+
+  const initializePianoSampler = async () => {
+    if (toneRef.current.ready && toneRef.current.sampler) return
+    if (toneRef.current.loadingPromise) {
+      await toneRef.current.loadingPromise
+      return
+    }
+
+    toneRef.current.loadingPromise = (async () => {
+      await Tone.start()
+      const sampler = new Tone.Sampler({
+        urls: {
+          A1: 'A1.mp3',
+          C2: 'C2.mp3',
+          'D#2': 'Ds2.mp3',
+          'F#2': 'Fs2.mp3',
+          A2: 'A2.mp3',
+          C3: 'C3.mp3',
+          'D#3': 'Ds3.mp3',
+          'F#3': 'Fs3.mp3',
+          A3: 'A3.mp3',
+          C4: 'C4.mp3',
+          'D#4': 'Ds4.mp3',
+          'F#4': 'Fs4.mp3',
+          A4: 'A4.mp3',
+          C5: 'C5.mp3',
+          'D#5': 'Ds5.mp3',
+          'F#5': 'Fs5.mp3',
+          A5: 'A5.mp3',
+        },
+        release: 1.2,
+        baseUrl: 'https://tonejs.github.io/audio/salamander/',
+      }).toDestination()
+
+      await Tone.loaded()
+      toneRef.current.sampler = sampler
+      toneRef.current.ready = true
+    })()
+
+    try {
+      await toneRef.current.loadingPromise
+    } finally {
+      toneRef.current.loadingPromise = null
+    }
+  }
+
+  const detectMicrophoneMidi = (nowMs) => {
+    const mic = micRef.current
+    if (!mic.analyser || !mic.audioContext || !mic.data) return null
+
+    mic.analyser.getFloatTimeDomainData(mic.data)
+    const frequency = autoCorrelate(mic.data, mic.audioContext.sampleRate)
+    if (frequency <= 0) return null
+
+    const midiValue = midiFromFrequency(frequency)
+    const nearestMidi = Math.round(midiValue)
+    const centsOff = Math.abs(midiValue - nearestMidi) * 100
+    if (centsOff > 35) return null
+
+    if (nowMs - mic.lastHitAt < 220) return null
+    mic.lastHitAt = nowMs
+    return nearestMidi
+  }
+
+  const playReferenceNote = (midi) => {
+    if (toneRef.current.ready && toneRef.current.sampler) {
+      const noteName = Tone.Frequency(midi, 'midi').toNote()
+      toneRef.current.sampler.triggerAttackRelease(noteName, 1.1)
+      return
+    }
+
+    const mic = micRef.current
+    if (!mic.audioContext) return
+    const audioContext = mic.audioContext
+    const oscillator = audioContext.createOscillator()
+    const gain = audioContext.createGain()
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(440 * 2 ** ((midi - 69) / 12), audioContext.currentTime)
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5)
+    oscillator.connect(gain)
+    gain.connect(audioContext.destination)
+    oscillator.start()
+    oscillator.stop(audioContext.currentTime + 0.52)
   }
 
   const spawnNote = (state, nowMs) => {
@@ -256,6 +402,7 @@ function App() {
       driftPhase: isStaggered ? Math.random() * Math.PI * 2 : 0,
       speedFactor: isStaggered ? 0.82 + Math.random() * 0.42 : 1,
       age: 0,
+      destroyAt: null,
     })
     state.nextId += 1
     state.lastSpawnAt = nowMs
@@ -296,6 +443,7 @@ function App() {
     if (nowMs - mic.lastHitAt < 220) return
 
     const targetIndex = state.notes.findIndex((note) => {
+      if (note.destroyAt !== null) return false
       if (!(note.y >= HIT_MIN_Y && note.y < PIANO_LINE_Y)) return false
       return note.remainingMidis.includes(nearestMidi)
     })
@@ -305,18 +453,123 @@ function App() {
       target.remainingMidis = target.remainingMidis.filter((midi) => midi !== nearestMidi)
       state.streak += 1
       state.score += 6 + Math.min(state.streak, 18)
+      const distance = Math.sqrt((target.x - 50) ** 2 + (target.y - 92) ** 2)
+      const bulletMs = clamp(120 + distance * 7, 120, 340)
+      const bulletEndAt = nowMs + bulletMs
+
+      state.bullets.push({
+        id: state.nextBulletId,
+        startX: 50,
+        startY: 92,
+        targetX: target.x,
+        targetY: target.y,
+        x: 50,
+        y: 92,
+        startAt: nowMs,
+        endAt: bulletEndAt,
+      })
+      state.nextBulletId += 1
+
       if (target.remainingMidis.length === 0) {
         const clearBonus = target.midis.length === 1 ? 6 : target.midis.length * 6
         state.score += clearBonus
-        state.notes.splice(targetIndex, 1)
+        target.destroyAt = bulletEndAt
       }
       mic.lastHitAt = nowMs
     }
   }
 
+  const startEarRound = (state) => {
+    const randomIndex = Math.floor(Math.random() * EAR_NOTE_POOL.length)
+    state.targetMidi = EAR_NOTE_POOL[randomIndex]
+    state.mode = 'resolving'
+    setEarInputNote('--')
+    setEarTimerLeft(10)
+    setEarConductorState('listen')
+    playReferenceNote(state.targetMidi)
+    scheduleEarTimeout(() => {
+      state.roundDeadline = performance.now() + 10000
+      state.mode = 'awaiting'
+      setEarConductorState('idle')
+    }, 1300)
+  }
+
+  const endEarRun = () => {
+    stopGameLoop()
+    stopAudio()
+    clearEarTimeouts()
+    setScreen('earGameOver')
+  }
+
+  const handleEarCorrect = (state) => {
+    state.mode = 'resolving'
+    state.round += 1
+    if (state.round > state.highestRound) {
+      state.highestRound = state.round
+      setEarHighestRound(state.round)
+    }
+    setEarRound(state.round)
+    setEarConductorState('right')
+    scheduleEarTimeout(() => {
+      setEarConductorState('idle')
+    }, 1200)
+    scheduleEarTimeout(() => {
+      startEarRound(state)
+    }, 3000)
+  }
+
+  const handleEarWrong = (state) => {
+    state.mode = 'resolving'
+    state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
+    setEarBulletsLoaded(state.bulletsLoaded)
+    setEarConductorState('wrong')
+
+    scheduleEarTimeout(() => setEarConductorState('reload'), 1300)
+    scheduleEarTimeout(() => setEarConductorState('spin'), 2900)
+    scheduleEarTimeout(() => setEarConductorState('aim'), 4500)
+    scheduleEarTimeout(() => {
+      const fire = Math.random() < state.bulletsLoaded / 6
+      if (fire) {
+        setEarConductorState('fire')
+        scheduleEarTimeout(() => {
+          setEarHighestRound(state.highestRound)
+          endEarRun()
+        }, 900)
+      } else {
+        setEarConductorState('idle')
+        scheduleEarTimeout(() => startEarRound(state), 3000)
+      }
+    }, 6100)
+  }
+
+  const earGameLoop = (nowMs) => {
+    const state = gameStateRef.current
+    if (!state || state.type !== 'ear') return
+
+    if (state.mode === 'awaiting') {
+      const remainingMs = Math.max(0, state.roundDeadline - nowMs)
+      setEarTimerLeft(Math.ceil(remainingMs / 1000))
+
+      const detectedMidi = detectMicrophoneMidi(nowMs)
+      if (detectedMidi !== null) {
+        setEarInputNote(midiToSimpleLabel(detectedMidi))
+        if (detectedMidi % 12 === state.targetMidi % 12) {
+          handleEarCorrect(state)
+        } else {
+          handleEarWrong(state)
+        }
+      } else if (remainingMs <= 0) {
+        setEarInputNote('TIME')
+        handleEarWrong(state)
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(earGameLoop)
+  }
+
   const gameLoop = (nowMs) => {
     const state = gameStateRef.current
-    if (!state) return
+    if (!state || state.type !== 'arcade') return
 
     if (lastFrameRef.current === 0) {
       lastFrameRef.current = nowMs
@@ -345,8 +598,31 @@ function App() {
     const baseNoteVelocity = 100 / state.readSpeed
     let misses = 0
     const movedNotes = []
+    const newParticles = []
 
     for (const note of state.notes) {
+      if (note.destroyAt !== null) {
+        if (nowMs >= note.destroyAt) {
+          for (let i = 0; i < 9; i += 1) {
+            const angle = Math.random() * Math.PI * 2
+            const speed = 4 + Math.random() * 8
+            newParticles.push({
+              id: state.nextParticleId,
+              x: note.x,
+              y: note.y,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 1.5,
+              bornAt: nowMs,
+              dieAt: nowMs + 280 + Math.random() * 120,
+            })
+            state.nextParticleId += 1
+          }
+          continue
+        }
+        movedNotes.push(note)
+        continue
+      }
+
       const nextAge = note.age + dt
       const nextY = note.y + baseNoteVelocity * note.speedFactor * dt
       const drift = Math.sin(nextAge * note.driftFreq + note.driftPhase) * note.driftAmp
@@ -359,6 +635,29 @@ function App() {
     }
 
     state.notes = movedNotes
+    if (newParticles.length > 0) {
+      state.particles.push(...newParticles)
+    }
+    state.bullets = state.bullets
+      .filter((bullet) => nowMs < bullet.endAt)
+      .map((bullet) => {
+        const progress = clamp((nowMs - bullet.startAt) / (bullet.endAt - bullet.startAt), 0, 1)
+        return {
+          ...bullet,
+          x: bullet.startX + (bullet.targetX - bullet.startX) * progress,
+          y: bullet.startY + (bullet.targetY - bullet.startY) * progress,
+        }
+      })
+    state.particles = state.particles
+      .filter((particle) => nowMs < particle.dieAt)
+      .map((particle) => {
+        const life = clamp((nowMs - particle.bornAt) / (particle.dieAt - particle.bornAt), 0, 1)
+        return {
+          ...particle,
+          x: particle.x + particle.vx * 0.016,
+          y: particle.y + particle.vy * 0.016 + life * 0.42,
+        }
+      })
 
     if (misses > 0) {
       state.lives -= misses
@@ -371,11 +670,14 @@ function App() {
       setNotes([])
       setLives(0)
       setStreak(0)
+      setParticles([])
       endRun()
       return
     }
 
     setNotes([...state.notes])
+    setBullets([...state.bullets])
+    setParticles([...state.particles])
     setLives(state.lives)
     setScore(state.score)
     setStreak(state.streak)
@@ -392,10 +694,13 @@ function App() {
     setStreak(0)
     setDetectedNote('--')
     setNotes([])
+    setBullets([])
+    setParticles([])
 
     notePoolRef.current = getPoolForLevel(settings.level)
 
     gameStateRef.current = {
+      type: 'arcade',
       lives: 3,
       score: 0,
       streak: 0,
@@ -404,8 +709,12 @@ function App() {
       movement: settings.movement,
       readSpeed: Number(settings.readSpeed),
       notes: [],
+      bullets: [],
+      particles: [],
       lastSpawnAt: performance.now(),
       nextId: 1,
+      nextBulletId: 1,
+      nextParticleId: 1,
     }
 
     try {
@@ -420,15 +729,67 @@ function App() {
     }
   }
 
+  const startEarRun = async () => {
+    stopGameLoop()
+    stopAudio()
+    clearEarTimeouts()
+
+    setDetectedNote('--')
+    setEarRound(1)
+    setEarHighestRound(1)
+    setEarBulletsLoaded(0)
+    setEarInputNote('--')
+    setEarTimerLeft(10)
+    setEarConductorState('idle')
+
+    gameStateRef.current = {
+      type: 'ear',
+      mode: 'booting',
+      round: 1,
+      highestRound: 1,
+      bulletsLoaded: 0,
+      targetMidi: EAR_NOTE_POOL[0],
+      roundDeadline: 0,
+    }
+
+    try {
+      await setupMicrophone()
+      try {
+        await initializePianoSampler()
+      } catch {
+        // Fallback in playReferenceNote handles cases where samples cannot load.
+      }
+      setScreen('earGame')
+      setShowGamePicker(false)
+      startEarRound(gameStateRef.current)
+      rafRef.current = requestAnimationFrame(earGameLoop)
+    } catch {
+      setMicStatus('error')
+      setScreen('landing')
+      setShowGamePicker(false)
+    }
+  }
+
   useEffect(() => {
     return () => {
       stopGameLoop()
       stopAudio()
+      if (toneRef.current.sampler) {
+        toneRef.current.sampler.dispose()
+        toneRef.current.sampler = null
+        toneRef.current.ready = false
+      }
     }
   }, [])
 
   return (
-    <div className={`app-shell ${screen === 'game' ? 'game-mode' : 'menu-mode'}`}>
+    <div
+      className={`app-shell ${
+        screen === 'game' || screen === 'earGame' || screen === 'earGameOver'
+          ? 'game-mode'
+          : 'menu-mode'
+      }`}
+    >
       {screen === 'landing' && (
         <main className="landing">
           <h1 className="crawl-title">Piano Drills</h1>
@@ -452,6 +813,30 @@ function App() {
 
           <section className="lane" aria-label="Music lane">
             <div className="staff" />
+            <div className="bullet-layer" aria-hidden="true">
+              {bullets.map((bullet) => (
+                <span
+                  key={bullet.id}
+                  className="bullet-dot"
+                  style={{ left: `${bullet.x}%`, top: `${bullet.y}%` }}
+                />
+              ))}
+              {particles.map((particle) => (
+                <span
+                  key={particle.id}
+                  className="particle-dot"
+                  style={{
+                    left: `${particle.x}%`,
+                    top: `${particle.y}%`,
+                    opacity: clamp(
+                      1 - (performance.now() - particle.bornAt) / (particle.dieAt - particle.bornAt),
+                      0,
+                      1,
+                    ),
+                  }}
+                />
+              ))}
+            </div>
             {notes.map((note) => {
               const previewMidi =
                 note.remainingMidis.find((midi) => getNoteSprite(note.clef, midi)) ??
@@ -493,6 +878,61 @@ function App() {
           <div className="game-over-actions">
             <button className="primary" onClick={() => setShowSettings(true)}>
               Play Again
+            </button>
+            <button className="primary" onClick={() => setScreen('landing')}>
+              Title Screen
+            </button>
+          </div>
+        </main>
+      )}
+
+      {screen === 'earGame' && (
+        <main className="ear-game-shell">
+          <section
+            className="ear-game-window"
+            style={
+              EAR_BACKGROUND_URL ? { backgroundImage: `url(${EAR_BACKGROUND_URL})` } : undefined
+            }
+          >
+            {getConductorSprite(earConductorState) ? (
+              <img
+                className="conductor-sprite"
+                src={getConductorSprite(earConductorState)}
+                alt="Conductor"
+              />
+            ) : (
+              <div className="conductor-fallback">{earConductorState}</div>
+            )}
+
+            <div className="round-badge">Round {earRound}</div>
+
+            <div className="revolver-panel">
+              {getRevolverSprite(earBulletsLoaded) ? (
+                <img
+                  className="revolver-sprite"
+                  src={getRevolverSprite(earBulletsLoaded)}
+                  alt={`${earBulletsLoaded} loaded shots`}
+                />
+              ) : (
+                <div className="revolver-fallback">{earBulletsLoaded}/6</div>
+              )}
+            </div>
+
+            <aside className="ear-right-ui">
+              <div className="timer-pill">{earTimerLeft}s</div>
+              <div className="note-feedback">{earInputNote}</div>
+            </aside>
+          </section>
+        </main>
+      )}
+
+      {screen === 'earGameOver' && (
+        <main className="ear-game-over">
+          <h2>Game Over</h2>
+          <p>Highest Round: {earHighestRound}</p>
+          <div className="game-over-actions">
+            <button className="primary" onClick={startEarRun}>
+              Try Again
             </button>
             <button className="primary" onClick={() => setScreen('landing')}>
               Title Screen
@@ -589,9 +1029,14 @@ function App() {
                 <span>Piano Arcade</span>
               </button>
 
-              <button className="game-card" type="button" disabled>
+              <button
+                className="game-card is-active"
+                onClick={() => {
+                  startEarRun()
+                }}
+              >
                 <div className="game-card-art" />
-                <span>Placeholder</span>
+                <span>Play It By Ear</span>
               </button>
 
               <button className="game-card" type="button" disabled>
@@ -607,3 +1052,4 @@ function App() {
 }
 
 export default App
+
