@@ -491,7 +491,7 @@ function App() {
       state.roundDeadline = performance.now() + 10000
       state.mode = 'awaiting'
       setEarConductorState('idle')
-    }, 1300)
+    }, 2300)
   }
 
   const endEarRun = () => {
@@ -512,10 +512,10 @@ function App() {
     setEarConductorState('right')
     scheduleEarTimeout(() => {
       setEarConductorState('idle')
-    }, 1200)
+    }, 2200)
     scheduleEarTimeout(() => {
       startEarRound(state)
-    }, 3000)
+    }, 4000)
   }
 
   const handleEarWrong = (state) => {
@@ -524,22 +524,23 @@ function App() {
     setEarBulletsLoaded(state.bulletsLoaded)
     setEarConductorState('wrong')
 
-    scheduleEarTimeout(() => setEarConductorState('reload'), 1300)
-    scheduleEarTimeout(() => setEarConductorState('spin'), 2900)
-    scheduleEarTimeout(() => setEarConductorState('aim'), 4500)
+    scheduleEarTimeout(() => setEarConductorState('reload'), 2300)
+    scheduleEarTimeout(() => setEarConductorState('spin'), 3900)
+    scheduleEarTimeout(() => setEarConductorState('aim'), 5500)
     scheduleEarTimeout(() => {
-      const fire = Math.random() < state.bulletsLoaded / 6
+      const fireChance = clamp((state.bulletsLoaded / 6) * 0.82, 0, 0.99)
+      const fire = Math.random() < fireChance
       if (fire) {
         setEarConductorState('fire')
         scheduleEarTimeout(() => {
           setEarHighestRound(state.highestRound)
           endEarRun()
-        }, 900)
+        }, 1900)
       } else {
         setEarConductorState('idle')
-        scheduleEarTimeout(() => startEarRound(state), 3000)
+        scheduleEarTimeout(() => startEarRound(state), 4000)
       }
-    }, 6100)
+    }, 7100)
   }
 
   const earGameLoop = (nowMs) => {
@@ -1041,7 +1042,7 @@ function App() {
 
               <button className="game-card" type="button" disabled>
                 <div className="game-card-art" />
-                <span>Placeholder</span>
+                <span>Coming Soon</span>
               </button>
             </div>
           </div>
