@@ -32,6 +32,7 @@ select {
 .app-shell.menu-mode {
   display: grid;
   place-items: center;
+  padding: 0;
 }
 
 .app-shell.game-mode {
@@ -50,29 +51,20 @@ select {
 
 .landing {
   width: 100%;
-  min-height: calc(100vh - 24px);
+  min-height: 100vh;
   text-align: center;
-  padding: 0 20px 24px;
+  padding: 0 20px 10vh;
   margin: 0;
   border: none;
-  background: transparent;
+  background-image: url('./assets/piano-banner.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
   box-shadow: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-}
-
-.landing,
-.landing * {
-  outline: 1px solid #ff2b2b;
-}
-
-.landing-banner {
-  width: calc(100% + 24px);
-  height: auto;
-  margin: 0 0 20px -12px;
-  display: block;
+  justify-content: flex-end;
 }
 
 h1,

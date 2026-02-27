@@ -1,7 +1,6 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import * as Tone from 'tone'
 import './App.css'
-import pianoBanner from './assets/piano-banner.png'
 import pianoImage from './assets/piano.png'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -800,7 +799,6 @@ function App() {
     >
       {screen === 'landing' && (
         <main className="landing">
-          <img className="landing-banner" src={pianoBanner} alt="Piano banner" />
           <h1 className="crawl-title">Piano Drills</h1>
           <button className="start-button" onClick={() => setShowGamePicker(true)}>
             Start
