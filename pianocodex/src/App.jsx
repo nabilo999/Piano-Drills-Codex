@@ -525,8 +525,7 @@ function App() {
     setEarConductorState('wrong')
 
     scheduleEarTimeout(() => setEarConductorState('reload'), 2300)
-    scheduleEarTimeout(() => setEarConductorState('spin'), 3900)
-    scheduleEarTimeout(() => setEarConductorState('aim'), 5500)
+    scheduleEarTimeout(() => setEarConductorState('aim'), 3900)
     scheduleEarTimeout(() => {
       const fireChance = clamp((state.bulletsLoaded / 6) * 0.82, 0, 0.99)
       const fire = Math.random() < fireChance
@@ -546,7 +545,7 @@ function App() {
         setEarConductorState('idle')
         scheduleEarTimeout(() => startEarRound(state), 4000)
       }
-    }, 7100)
+    }, 5500)
   }
 
   const earGameLoop = (nowMs) => {
