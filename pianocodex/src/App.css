@@ -411,6 +411,31 @@ p {
   box-shadow: 0 24px 42px rgba(0, 0, 0, 0.42);
 }
 
+.ear-game-window.is-aiming-shake {
+  animation: aimShake 0.28s linear infinite;
+}
+
+@keyframes aimShake {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-3px, 1px);
+  }
+  40% {
+    transform: translate(3px, -2px);
+  }
+  60% {
+    transform: translate(-2px, -1px);
+  }
+  80% {
+    transform: translate(3px, 1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
 .conductor-sprite,
 .conductor-fallback {
   position: absolute;
@@ -448,25 +473,48 @@ p {
 
 .revolver-panel {
   position: absolute;
-  left: 22px;
-  bottom: 24px;
+  left: 40px;
+  bottom: 20px;
+}
+
+.revolver-panel.is-shaking {
+  animation: revolverShake 0.24s ease-in-out;
 }
 
 .revolver-sprite {
-  width: min(210px, 24vw);
+  width: min(420px, 54vw);
   height: auto;
 }
 
 .revolver-fallback {
-  width: 160px;
-  height: 96px;
+  width: min(290px, 33vw);
+  height: min(175px, 19vw);
   border-radius: 12px;
   border: 1px solid #2d3947;
   background: rgba(12, 15, 21, 0.82);
   color: #f5f8fd;
   display: grid;
   place-items: center;
+  font-size: 2.1rem;
   font-weight: 700;
+}
+
+@keyframes revolverShake {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3px, 1px);
+  }
+  50% {
+    transform: translate(3px, -1px);
+  }
+  75% {
+    transform: translate(-2px, 1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
 }
 
 .ear-right-ui {
@@ -500,6 +548,13 @@ p {
   place-items: center;
   font-size: 1.22rem;
   font-weight: 800;
+}
+
+.ear-flash-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.62);
+  pointer-events: none;
 }
 
 .ear-game-over {
@@ -541,6 +596,16 @@ p {
 
   .conductor-sprite {
     width: min(260px, 60vw);
+  }
+
+  .revolver-sprite {
+    width: min(255px, 47vw);
+  }
+
+  .revolver-fallback {
+    width: min(195px, 37vw);
+    height: min(115px, 22vw);
+    font-size: 1.7rem;
   }
 
   .ear-right-ui {

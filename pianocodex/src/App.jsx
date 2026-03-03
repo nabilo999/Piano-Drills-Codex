@@ -189,6 +189,9 @@ function App() {
   const [micStatus, setMicStatus] = useState('idle')
   const [earRound, setEarRound] = useState(1)
   const [earBulletsLoaded, setEarBulletsLoaded] = useState(0)
+  const [earRevolverShake, setEarRevolverShake] = useState(false)
+  const [earAimShake, setEarAimShake] = useState(false)
+  const [earFlashActive, setEarFlashActive] = useState(false)
   const [earTimerLeft, setEarTimerLeft] = useState(10)
   const [earInputNote, setEarInputNote] = useState('--')
   const [earConductorState, setEarConductorState] = useState('idle')
@@ -485,12 +488,11 @@ function App() {
     state.mode = 'resolving'
     setEarInputNote('--')
     setEarTimerLeft(10)
-    setEarConductorState('listen')
+    setEarConductorState('idle')
     playReferenceNote(state.targetMidi)
     scheduleEarTimeout(() => {
       state.roundDeadline = performance.now() + 10000
       state.mode = 'awaiting'
-      setEarConductorState('idle')
     }, 2300)
   }
 
@@ -498,6 +500,7 @@ function App() {
     stopGameLoop()
     stopAudio()
     clearEarTimeouts()
+    setEarFlashActive(false)
     setScreen('earGameOver')
   }
 
@@ -520,21 +523,33 @@ function App() {
 
   const handleEarWrong = (state) => {
     state.mode = 'resolving'
-    state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
-    setEarBulletsLoaded(state.bulletsLoaded)
     setEarConductorState('wrong')
 
-    scheduleEarTimeout(() => setEarConductorState('reload'), 2300)
-    scheduleEarTimeout(() => setEarConductorState('aim'), 3900)
     scheduleEarTimeout(() => {
+      setEarConductorState('reload')
+      state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
+      setEarBulletsLoaded(state.bulletsLoaded)
+      setEarRevolverShake(true)
+      scheduleEarTimeout(() => setEarRevolverShake(false), 240)
+    }, 2300)
+    scheduleEarTimeout(() => {
+      setEarConductorState('aim')
+      setEarAimShake(true)
+    }, 3900)
+    scheduleEarTimeout(() => {
+      setEarAimShake(false)
       const fireChance = clamp((state.bulletsLoaded / 6) * 0.82, 0, 0.99)
       const fire = Math.random() < fireChance
       if (fire) {
         setEarConductorState('fire')
         scheduleEarTimeout(() => {
+          setEarFlashActive(true)
+        }, 500)
+        scheduleEarTimeout(() => {
           setEarHighestRound(state.highestRound)
+          setEarFlashActive(false)
           endEarRun()
-        }, 1900)
+        }, 680)
       } else {
         state.round += 1
         if (state.round > state.highestRound) {
@@ -545,7 +560,7 @@ function App() {
         setEarConductorState('idle')
         scheduleEarTimeout(() => startEarRound(state), 4000)
       }
-    }, 5500)
+    }, 5600)
   }
 
   const earGameLoop = (nowMs) => {
@@ -744,6 +759,9 @@ function App() {
     setEarRound(1)
     setEarHighestRound(1)
     setEarBulletsLoaded(0)
+    setEarRevolverShake(false)
+    setEarAimShake(false)
+    setEarFlashActive(false)
     setEarInputNote('--')
     setEarTimerLeft(10)
     setEarConductorState('idle')
@@ -895,7 +913,7 @@ function App() {
       {screen === 'earGame' && (
         <main className="ear-game-shell">
           <section
-            className="ear-game-window"
+            className={`ear-game-window ${earAimShake ? 'is-aiming-shake' : ''}`}
             style={
               EAR_BACKGROUND_URL ? { backgroundImage: `url(${EAR_BACKGROUND_URL})` } : undefined
             }
@@ -912,7 +930,7 @@ function App() {
 
             <div className="round-badge">Round {earRound}</div>
 
-            <div className="revolver-panel">
+            <div className={`revolver-panel ${earRevolverShake ? 'is-shaking' : ''}`}>
               {getRevolverSprite(earBulletsLoaded) ? (
                 <img
                   className="revolver-sprite"
@@ -928,6 +946,7 @@ function App() {
               <div className="timer-pill">{earTimerLeft}s</div>
               <div className="note-feedback">{earInputNote}</div>
             </aside>
+            {earFlashActive && <div className="ear-flash-overlay" aria-hidden="true" />}
           </section>
         </main>
       )}
