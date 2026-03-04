@@ -230,7 +230,7 @@ p {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #f7fbff;
+  background: #8dd83d;
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 2px rgba(7, 10, 14, 0.28);
 }
