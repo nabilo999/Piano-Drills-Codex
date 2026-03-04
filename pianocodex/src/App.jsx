@@ -5,7 +5,7 @@ import pianoImage from './assets/piano.png'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
-const PIANO_LINE_Y = 88
+const PIANO_LINE_Y = 92
 const HIT_MIN_Y = 18
 
 const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
@@ -386,9 +386,8 @@ function App() {
 
     const averageMidi = midis.reduce((sum, midi) => sum + midi, 0) / Math.max(1, midis.length)
     const clef = averageMidi >= 60 ? 'treble' : 'bass'
-    const laneCenter = clef === 'treble' ? 35 : 65
     const isStaggered = state.movement === 'staggered'
-    const baseX = isStaggered ? clamp(laneCenter + (Math.random() * 14 - 7), 14, 86) : laneCenter
+    const baseX = clamp(10 + Math.random() * 80, 10, 90)
     const startY = isStaggered ? -4 - Math.random() * 10 : 0
 
     state.notes.push({
@@ -599,7 +598,58 @@ function App() {
     const dt = (nowMs - lastFrameRef.current) / 1000
     lastFrameRef.current = nowMs
 
+    if (state.deathStartedAt !== null) {
+      state.particles = state.particles
+        .filter((particle) => nowMs < particle.dieAt)
+        .map((particle) => {
+          const life = clamp((nowMs - particle.bornAt) / (particle.dieAt - particle.bornAt), 0, 1)
+          return {
+            ...particle,
+            x: particle.x + particle.vx * 0.016,
+            y: particle.y + particle.vy * 0.016 + life * 0.42,
+          }
+        })
+
+      setNotes([])
+      setBullets([])
+      setParticles([...state.particles])
+      setLives(0)
+      setStreak(0)
+
+      if (nowMs >= state.deathEndsAt && state.particles.length === 0) {
+        endRun()
+        return
+      }
+
+      rafRef.current = requestAnimationFrame(gameLoop)
+      return
+    }
+
     state.elapsed += dt
+
+    // Ship turbo: emit a steady, thick flame trail from beneath the center of the piano.
+    while (nowMs >= state.nextTurboAt) {
+      const burstCount = 3
+      for (let i = 0; i < burstCount; i += 1) {
+        const x = 50 + (Math.random() * 3 - 1.5)
+        const y = 93.2 + Math.random() * 1.2
+        const hue = 16 + Math.random() * 34
+        const lightness = 52 + Math.random() * 28
+        state.particles.push({
+          id: state.nextParticleId,
+          x,
+          y,
+          vx: Math.random() * 2.6 - 1.3,
+          vy: 10 + Math.random() * 14,
+          bornAt: state.nextTurboAt,
+          dieAt: state.nextTurboAt + 220 + Math.random() * 190,
+          color: `hsl(${hue} 98% ${lightness}%)`,
+          size: 4.2 + Math.random() * 5.4,
+        })
+        state.nextParticleId += 1
+      }
+      state.nextTurboAt += 42
+    }
 
     const baseSpawnGap =
       state.level === 'beginner'
@@ -647,7 +697,9 @@ function App() {
       const nextAge = note.age + dt
       const nextY = note.y + baseNoteVelocity * note.speedFactor * dt
       const drift = Math.sin(nextAge * note.driftFreq + note.driftPhase) * note.driftAmp
-      const nextX = clamp(note.baseX + drift, 10, 90)
+      const fallProgress = clamp(nextY / PIANO_LINE_Y, 0, 1)
+      const homeX = note.baseX + (50 - note.baseX) * fallProgress
+      const nextX = clamp(homeX + drift * (1 - fallProgress), 10, 90)
       if (nextY >= PIANO_LINE_Y) {
         misses += 1
       } else {
@@ -688,11 +740,42 @@ function App() {
     detectAndApplyHit(state, nowMs)
 
     if (state.lives <= 0) {
+      const burstParticles = []
+      for (let i = 0; i < 75; i += 1) {
+        const angle = Math.random() * Math.PI * 2
+        const speed = 6 + Math.random() * 16
+        const hue = 18 + Math.random() * 38
+        const lightness = 44 + Math.random() * 24
+        const size = 5 + Math.random() * 8
+        burstParticles.push({
+          id: state.nextParticleId,
+          x: 50,
+          y: 92,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2.2,
+          bornAt: nowMs,
+          dieAt: nowMs + 500 + Math.random() * 500,
+          color: `hsl(${hue} 96% ${lightness}%)`,
+          size,
+        })
+        state.nextParticleId += 1
+      }
+
+      state.particles.push(...burstParticles)
+      state.notes = []
+      state.bullets = []
+      state.lives = 0
+      state.streak = 0
+      state.deathStartedAt = nowMs
+      state.deathEndsAt = nowMs + 900
+
       setNotes([])
       setLives(0)
       setStreak(0)
-      setParticles([])
-      endRun()
+      setBullets([])
+      setParticles([...state.particles])
+
+      rafRef.current = requestAnimationFrame(gameLoop)
       return
     }
 
@@ -736,6 +819,9 @@ function App() {
       nextId: 1,
       nextBulletId: 1,
       nextParticleId: 1,
+      nextTurboAt: performance.now(),
+      deathStartedAt: null,
+      deathEndsAt: 0,
     }
 
     try {
@@ -852,6 +938,9 @@ function App() {
                   style={{
                     left: `${particle.x}%`,
                     top: `${particle.y}%`,
+                    width: `${particle.size ?? 5.2}px`,
+                    height: `${particle.size ?? 5.2}px`,
+                    background: particle.color ?? undefined,
                     opacity: clamp(
                       1 - (performance.now() - particle.bornAt) / (particle.dieAt - particle.bornAt),
                       0,
@@ -889,8 +978,7 @@ function App() {
                 </article>
               )
             })}
-            <div className="piano-line" />
-            <img className="piano-image" src={pianoImage} alt="Piano" />
+            {lives > 0 && <img className="piano-image" src={pianoImage} alt="Piano" />}
           </section>
         </main>
       )}
