@@ -2,6 +2,8 @@
 import * as Tone from 'tone'
 import './App.css'
 import pianoImage from './assets/piano.png'
+import arcadeCardImage from './assets/arcade_background.PNG'
+import playItByEarCardImage from './assets/play_it_by_ear_card.png'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -1138,7 +1140,15 @@ function App() {
                   setShowSettings(true)
                 }}
               >
-                <div className="game-card-art" />
+                <div
+                  className="game-card-art"
+                  style={{
+                    backgroundImage: `url(${arcadeCardImage})`,
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
                 <span>Piano Arcade</span>
               </button>
 
@@ -1148,7 +1158,15 @@ function App() {
                   startEarRun()
                 }}
               >
-                <div className="game-card-art" />
+                <div
+                  className="game-card-art"
+                  style={{
+                    backgroundImage: `url(${playItByEarCardImage})`,
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
                 <span>Play It By Ear</span>
               </button>
 
