@@ -26,6 +26,10 @@ const EAR_BACKGROUND = import.meta.glob('./assets/background.png', {
   eager: true,
   import: 'default',
 })
+const SFX_FILES = import.meta.glob('./assets/sfx/*.mp3', {
+  eager: true,
+  import: 'default',
+})
 const NOTE_SPRITE_MAP = Object.fromEntries(
   Object.entries(NOTE_SPRITES).map(([path, url]) => {
     const fileName = path.split('/').pop()
@@ -41,6 +45,24 @@ const REVOLVER_MAP = Object.fromEntries(
 )
 const EAR_BACKGROUND_URL = EAR_BACKGROUND['./assets/background.png'] ?? null
 const EAR_NOTE_POOL = [60, 62, 64, 65, 67, 69, 71]
+const EAR_SFX = {
+  correct: SFX_FILES['./assets/sfx/correct.mp3'] ?? null,
+  wrong: SFX_FILES['./assets/sfx/wrong.mp3'] ?? null,
+  reloads: [
+    SFX_FILES['./assets/sfx/shell_load1.mp3'] ?? null,
+    SFX_FILES['./assets/sfx/shell_load2.mp3'] ?? null,
+    SFX_FILES['./assets/sfx/shot_load3.mp3'] ?? null,
+  ].filter(Boolean),
+  pump: SFX_FILES['./assets/sfx/pump_action.mp3'] ?? null,
+  shotgunBlast: SFX_FILES['./assets/sfx/shotgun_blast.mp3'] ?? null,
+  shellFalling: SFX_FILES['./assets/sfx/shell_falling.mp3'] ?? null,
+  dryFire: [
+    SFX_FILES['./assets/sfx/dry_fire1.mp3'] ?? null,
+    SFX_FILES['./assets/sfx/dry_fire2.mp3'] ?? null,
+  ].filter(Boolean),
+  heartbeatMed: SFX_FILES['./assets/sfx/heartbeat_med.mp3'] ?? null,
+  heartbeatFast: SFX_FILES['./assets/sfx/heartbeat_fast.mp3'] ?? null,
+}
 
 function midiToNoteName(midi) {
   const pitchClass = midi % 12
@@ -208,6 +230,10 @@ function App() {
     sampler: null,
     ready: false,
     loadingPromise: null,
+  })
+  const sfxRef = useRef({
+    heartbeat: null,
+    heartbeatMode: null,
   })
   const micRef = useRef({
     stream: null,
@@ -490,6 +516,7 @@ function App() {
     setEarInputNote('--')
     setEarTimerLeft(10)
     setEarConductorState('idle')
+    stopHeartbeatLoop()
     playReferenceNote(state.targetMidi)
     scheduleEarTimeout(() => {
       state.roundDeadline = performance.now() + 10000
@@ -497,16 +524,60 @@ function App() {
     }, 2300)
   }
 
+  const pickRandom = (options) => {
+    if (!options || options.length === 0) return null
+    return options[Math.floor(Math.random() * options.length)]
+  }
+
+  const playSfx = (url, volume = 0.72) => {
+    if (!url) return
+    const audio = new Audio(url)
+    audio.volume = volume
+    audio.play().catch(() => {})
+  }
+
+  const playRandomSfx = (urls, volume = 0.72) => {
+    playSfx(pickRandom(urls), volume)
+  }
+
+  const stopHeartbeatLoop = () => {
+    const heartbeat = sfxRef.current.heartbeat
+    if (heartbeat) {
+      heartbeat.pause()
+      heartbeat.currentTime = 0
+    }
+    sfxRef.current.heartbeat = null
+    sfxRef.current.heartbeatMode = null
+  }
+
+  const startHeartbeatLoop = (bulletsLoaded) => {
+    const mode = bulletsLoaded >= 4 ? 'fast' : 'med'
+    const nextUrl = mode === 'fast' ? EAR_SFX.heartbeatFast : EAR_SFX.heartbeatMed
+    if (!nextUrl) return
+    if (sfxRef.current.heartbeat && sfxRef.current.heartbeatMode === mode) return
+
+    stopHeartbeatLoop()
+    const audio = new Audio(nextUrl)
+    audio.loop = true
+    audio.volume = mode === 'fast' ? 0.65 : 0.55
+    audio.play().catch(() => {})
+    sfxRef.current.heartbeat = audio
+    sfxRef.current.heartbeatMode = mode
+  }
+
   const endEarRun = () => {
     stopGameLoop()
     stopAudio()
     clearEarTimeouts()
+    stopHeartbeatLoop()
     setEarFlashActive(false)
     setScreen('earGameOver')
   }
 
   const handleEarCorrect = (state) => {
     state.mode = 'resolving'
+    stopHeartbeatLoop()
+    playSfx(EAR_SFX.correct, 0.7)
     state.round += 1
     if (state.round > state.highestRound) {
       state.highestRound = state.round
@@ -524,10 +595,13 @@ function App() {
 
   const handleEarWrong = (state) => {
     state.mode = 'resolving'
+    stopHeartbeatLoop()
     setEarConductorState('wrong')
+    playSfx(EAR_SFX.wrong, 0.72)
 
     scheduleEarTimeout(() => {
       setEarConductorState('reload')
+      playRandomSfx(EAR_SFX.reloads, 0.72)
       state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
       setEarBulletsLoaded(state.bulletsLoaded)
       setEarRevolverShake(true)
@@ -536,13 +610,18 @@ function App() {
     scheduleEarTimeout(() => {
       setEarConductorState('aim')
       setEarAimShake(true)
+      playSfx(EAR_SFX.pump, 0.66)
+      startHeartbeatLoop(state.bulletsLoaded)
     }, 3900)
     scheduleEarTimeout(() => {
       setEarAimShake(false)
+      stopHeartbeatLoop()
       const fireChance = clamp((state.bulletsLoaded / 6) * 0.82, 0, 0.99)
       const fire = Math.random() < fireChance
       if (fire) {
         setEarConductorState('fire')
+        playSfx(EAR_SFX.shotgunBlast, 0.8)
+        scheduleEarTimeout(() => playSfx(EAR_SFX.shellFalling, 0.62), 220)
         scheduleEarTimeout(() => {
           setEarFlashActive(true)
         }, 500)
@@ -552,6 +631,7 @@ function App() {
           endEarRun()
         }, 680)
       } else {
+        playRandomSfx(EAR_SFX.dryFire, 0.72)
         state.round += 1
         if (state.round > state.highestRound) {
           state.highestRound = state.round
@@ -561,7 +641,7 @@ function App() {
         setEarConductorState('idle')
         scheduleEarTimeout(() => startEarRound(state), 4000)
       }
-    }, 5600)
+    }, 7600)
   }
 
   const earGameLoop = (nowMs) => {
@@ -842,6 +922,7 @@ function App() {
     stopGameLoop()
     stopAudio()
     clearEarTimeouts()
+    stopHeartbeatLoop()
 
     setDetectedNote('--')
     setEarRound(1)
@@ -886,6 +967,7 @@ function App() {
     return () => {
       stopGameLoop()
       stopAudio()
+      stopHeartbeatLoop()
       if (toneRef.current.sampler) {
         toneRef.current.sampler.dispose()
         toneRef.current.sampler = null
