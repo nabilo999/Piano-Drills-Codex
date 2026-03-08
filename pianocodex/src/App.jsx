@@ -45,6 +45,7 @@ const REVOLVER_MAP = Object.fromEntries(
 )
 const EAR_BACKGROUND_URL = EAR_BACKGROUND['./assets/background.png'] ?? null
 const EAR_NOTE_POOL = [60, 62, 64, 65, 67, 69, 71]
+const EAR_FEEDBACK_DELAY_MS = 900
 const EAR_SFX = {
   correct: SFX_FILES['./assets/sfx/correct.mp3'] ?? null,
   wrong: SFX_FILES['./assets/sfx/wrong.mp3'] ?? null,
@@ -62,6 +63,9 @@ const EAR_SFX = {
   ].filter(Boolean),
   heartbeatMed: SFX_FILES['./assets/sfx/heartbeat_med.mp3'] ?? null,
   heartbeatFast: SFX_FILES['./assets/sfx/heartbeat_fast.mp3'] ?? null,
+  littleTroubleThere: SFX_FILES['./assets/sfx/little_trouble_there.mp3'] ?? null,
+  notQuiteMyTempo: SFX_FILES['./assets/sfx/not_quite_my_tempo.mp3'] ?? null,
+  youreDone: SFX_FILES['./assets/sfx/youre_done.mp3'] ?? null,
 }
 
 function midiToNoteName(midi) {
@@ -565,6 +569,35 @@ function App() {
     sfxRef.current.heartbeatMode = mode
   }
 
+  const playReloadTaunt = (state) => {
+    const bulletsLoaded = state.bulletsLoaded
+    if (
+      bulletsLoaded >= 1 &&
+      bulletsLoaded <= 2 &&
+      !state.playedTaunts.littleTroubleThere &&
+      Math.random() < 0.1
+    ) {
+      playSfx(EAR_SFX.littleTroubleThere, 0.72)
+      state.playedTaunts.littleTroubleThere = true
+      return
+    }
+    if (
+      bulletsLoaded >= 3 &&
+      bulletsLoaded <= 4 &&
+      !state.playedTaunts.notQuiteMyTempo &&
+      Math.random() < 0.1
+    ) {
+      playSfx(EAR_SFX.notQuiteMyTempo, 0.72)
+      state.playedTaunts.notQuiteMyTempo = true
+    }
+  }
+
+  const playAimTaunt = (bulletsLoaded) => {
+    if (bulletsLoaded >= 6) {
+      playSfx(EAR_SFX.youreDone, 0.78)
+    }
+  }
+
   const endEarRun = () => {
     stopGameLoop()
     stopAudio()
@@ -604,6 +637,7 @@ function App() {
       playRandomSfx(EAR_SFX.reloads, 0.72)
       state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
       setEarBulletsLoaded(state.bulletsLoaded)
+      playReloadTaunt(state)
       setEarRevolverShake(true)
       scheduleEarTimeout(() => setEarRevolverShake(false), 240)
     }, 2300)
@@ -611,14 +645,15 @@ function App() {
       setEarConductorState('aim')
       setEarAimShake(true)
       playSfx(EAR_SFX.pump, 0.66)
+      playAimTaunt(state.bulletsLoaded)
       startHeartbeatLoop(state.bulletsLoaded)
     }, 3900)
     scheduleEarTimeout(() => {
-      setEarAimShake(false)
       stopHeartbeatLoop()
       const fireChance = clamp((state.bulletsLoaded / 6) * 0.82, 0, 0.99)
       const fire = Math.random() < fireChance
       if (fire) {
+        setEarAimShake(false)
         setEarConductorState('fire')
         playSfx(EAR_SFX.shotgunBlast, 0.8)
         scheduleEarTimeout(() => playSfx(EAR_SFX.shellFalling, 0.62), 220)
@@ -631,15 +666,19 @@ function App() {
           endEarRun()
         }, 680)
       } else {
+        // Keep aiming while dry-fire plays, then release back to idle.
         playRandomSfx(EAR_SFX.dryFire, 0.72)
-        state.round += 1
-        if (state.round > state.highestRound) {
-          state.highestRound = state.round
-          setEarHighestRound(state.round)
-        }
-        setEarRound(state.round)
-        setEarConductorState('idle')
-        scheduleEarTimeout(() => startEarRound(state), 4000)
+        scheduleEarTimeout(() => {
+          setEarAimShake(false)
+          state.round += 1
+          if (state.round > state.highestRound) {
+            state.highestRound = state.round
+            setEarHighestRound(state.round)
+          }
+          setEarRound(state.round)
+          setEarConductorState('idle')
+          scheduleEarTimeout(() => startEarRound(state), 4000)
+        }, 900)
       }
     }, 7600)
   }
@@ -655,11 +694,16 @@ function App() {
       const detectedMidi = detectMicrophoneMidi(nowMs)
       if (detectedMidi !== null) {
         setEarInputNote(midiToSimpleLabel(detectedMidi))
-        if (detectedMidi % 12 === state.targetMidi % 12) {
-          handleEarCorrect(state)
-        } else {
-          handleEarWrong(state)
-        }
+        state.mode = 'resolving'
+        scheduleEarTimeout(() => {
+          const liveState = gameStateRef.current
+          if (!liveState || liveState.type !== 'ear') return
+          if (detectedMidi % 12 === liveState.targetMidi % 12) {
+            handleEarCorrect(liveState)
+          } else {
+            handleEarWrong(liveState)
+          }
+        }, EAR_FEEDBACK_DELAY_MS)
       } else if (remainingMs <= 0) {
         setEarInputNote('TIME')
         handleEarWrong(state)
@@ -941,6 +985,10 @@ function App() {
       round: 1,
       highestRound: 1,
       bulletsLoaded: 0,
+      playedTaunts: {
+        littleTroubleThere: false,
+        notQuiteMyTempo: false,
+      },
       targetMidi: EAR_NOTE_POOL[0],
       roundDeadline: 0,
     }
