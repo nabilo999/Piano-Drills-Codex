@@ -9,6 +9,12 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
 const PIANO_LINE_Y = 92
 const HIT_MIN_Y = 18
+const MIC_MIN_RMS = 0.02
+const MIC_STABLE_CENTS = 30
+const MIC_HISTORY_SIZE = 6
+const MIC_CONFIRM_FRAMES = 3
+const MIC_MAX_JUMP_SEMITONES = 7
+const MIC_NOTE_HOLD_MS = 180
 
 const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
 const LEVEL_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
@@ -45,7 +51,10 @@ const REVOLVER_MAP = Object.fromEntries(
 )
 const EAR_BACKGROUND_URL = EAR_BACKGROUND['./assets/background.png'] ?? null
 const EAR_NOTE_POOL = [60, 62, 64, 65, 67, 69, 71]
+const TESTER_NOTE_RANGE = Array.from({ length: 13 }, (_, index) => 60 + index)
 const EAR_FEEDBACK_DELAY_MS = 900
+const EAR_CAPTURE_WINDOW_MS = 260
+const EAR_CAPTURE_MIN_SAMPLES = 3
 const EAR_SFX = {
   correct: SFX_FILES['./assets/sfx/correct.mp3'] ?? null,
   wrong: SFX_FILES['./assets/sfx/wrong.mp3'] ?? null,
@@ -66,6 +75,9 @@ const EAR_SFX = {
   littleTroubleThere: SFX_FILES['./assets/sfx/little_trouble_there.mp3'] ?? null,
   notQuiteMyTempo: SFX_FILES['./assets/sfx/not_quite_my_tempo.mp3'] ?? null,
   youreDone: SFX_FILES['./assets/sfx/youre_done.mp3'] ?? null,
+  shipBlast: SFX_FILES['./assets/sfx/ship_blast.mp3'] ?? null,
+  shipDamage: SFX_FILES['./assets/sfx/ship_damage.mp3'] ?? null,
+  shipExplode: SFX_FILES['./assets/sfx/ship_explode.mp3'] ?? null,
 }
 
 function midiToNoteName(midi) {
@@ -107,13 +119,45 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
 }
 
-function autoCorrelate(buffer, sampleRate) {
+function getTesterPositionPercent(midiValue) {
+  if (midiValue === null) return 50
+  const rangeStart = TESTER_NOTE_RANGE[0]
+  const rangeEnd = TESTER_NOTE_RANGE[TESTER_NOTE_RANGE.length - 1]
+  return ((clamp(midiValue, rangeStart, rangeEnd) - rangeStart) / (rangeEnd - rangeStart)) * 100
+}
+
+function getRms(buffer) {
   let rms = 0
   for (let i = 0; i < buffer.length; i += 1) {
     const value = buffer[i]
     rms += value * value
   }
-  rms = Math.sqrt(rms / buffer.length)
+  return Math.sqrt(rms / buffer.length)
+}
+
+function getDominantPitchClass(midis) {
+  if (midis.length === 0) return null
+
+  const counts = new Map()
+  for (const midi of midis) {
+    const pitchClass = ((midi % 12) + 12) % 12
+    counts.set(pitchClass, (counts.get(pitchClass) ?? 0) + 1)
+  }
+
+  let dominantPitchClass = null
+  let dominantCount = -1
+  for (const [pitchClass, count] of counts.entries()) {
+    if (count > dominantCount) {
+      dominantPitchClass = pitchClass
+      dominantCount = count
+    }
+  }
+
+  return dominantPitchClass
+}
+
+function autoCorrelate(buffer, sampleRate) {
+  const rms = getRms(buffer)
   if (rms < 0.015) return -1
 
   const correlations = new Array(buffer.length).fill(0)
@@ -201,6 +245,7 @@ function App() {
   const [screen, setScreen] = useState('landing')
   const [showGamePicker, setShowGamePicker] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showPitchTester, setShowPitchTester] = useState(false)
   const [settings, setSettings] = useState({
     readSpeed: 3,
     level: 'beginner',
@@ -224,8 +269,15 @@ function App() {
   const [earInputNote, setEarInputNote] = useState('--')
   const [earConductorState, setEarConductorState] = useState('idle')
   const [earHighestRound, setEarHighestRound] = useState(1)
+  const [testerReading, setTesterReading] = useState({
+    label: '--',
+    midiValue: null,
+    centsOff: null,
+    stable: false,
+  })
 
   const rafRef = useRef(null)
+  const testerRafRef = useRef(null)
   const lastFrameRef = useRef(0)
   const notePoolRef = useRef([])
   const gameStateRef = useRef(null)
@@ -246,6 +298,10 @@ function App() {
     data: null,
     lastHitAt: 0,
     lastNoteUpdate: 0,
+    pitchHistory: [],
+    lockedMidi: null,
+    lockedMidiValue: null,
+    lockUntil: 0,
   })
 
   const stopAudio = () => {
@@ -264,6 +320,10 @@ function App() {
       data: null,
       lastHitAt: 0,
       lastNoteUpdate: 0,
+      pitchHistory: [],
+      lockedMidi: null,
+      lockedMidiValue: null,
+      lockUntil: 0,
     }
   }
 
@@ -277,6 +337,13 @@ function App() {
   const scheduleEarTimeout = (fn, delayMs) => {
     const timeoutId = setTimeout(fn, delayMs)
     earTimeoutsRef.current.push(timeoutId)
+  }
+
+  const stopPitchTesterLoop = () => {
+    if (testerRafRef.current) {
+      cancelAnimationFrame(testerRafRef.current)
+      testerRafRef.current = null
+    }
   }
 
   const stopGameLoop = () => {
@@ -293,6 +360,19 @@ function App() {
     setScreen('gameOver')
   }
 
+  const closePitchTester = () => {
+    stopPitchTesterLoop()
+    stopAudio()
+    setTesterReading({
+      label: '--',
+      midiValue: null,
+      centsOff: null,
+      stable: false,
+    })
+    setShowPitchTester(false)
+    setMicStatus('idle')
+  }
+
   const setupMicrophone = async () => {
     setMicStatus('requesting')
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -300,6 +380,7 @@ function App() {
     const source = audioContext.createMediaStreamSource(stream)
     const analyser = audioContext.createAnalyser()
     analyser.fftSize = 2048
+    analyser.smoothingTimeConstant = 0.85
     source.connect(analyser)
 
     micRef.current = {
@@ -309,6 +390,10 @@ function App() {
       data: new Float32Array(analyser.fftSize),
       lastHitAt: 0,
       lastNoteUpdate: 0,
+      pitchHistory: [],
+      lockedMidi: null,
+      lockedMidiValue: null,
+      lockUntil: 0,
     }
 
     setMicStatus('ready')
@@ -359,22 +444,172 @@ function App() {
     }
   }
 
-  const detectMicrophoneMidi = (nowMs) => {
+  const readMicrophonePitch = () => {
     const mic = micRef.current
     if (!mic.analyser || !mic.audioContext || !mic.data) return null
 
+    const nowMs = performance.now()
     mic.analyser.getFloatTimeDomainData(mic.data)
+    const rms = getRms(mic.data)
+    if (rms < MIC_MIN_RMS) {
+      mic.pitchHistory = []
+      if (mic.lockedMidi !== null && nowMs < mic.lockUntil) {
+        return {
+          frequency: null,
+          midiValue: mic.lockedMidiValue ?? mic.lockedMidi,
+          nearestMidi: mic.lockedMidi,
+          centsOff: 0,
+          stable: true,
+        }
+      }
+      mic.lockedMidi = null
+      mic.lockedMidiValue = null
+      return null
+    }
+
     const frequency = autoCorrelate(mic.data, mic.audioContext.sampleRate)
-    if (frequency <= 0) return null
+    if (frequency <= 0) {
+      if (mic.lockedMidi !== null && nowMs < mic.lockUntil) {
+        return {
+          frequency: null,
+          midiValue: mic.lockedMidiValue ?? mic.lockedMidi,
+          nearestMidi: mic.lockedMidi,
+          centsOff: 0,
+          stable: true,
+        }
+      }
+      mic.pitchHistory = []
+      mic.lockedMidi = null
+      mic.lockedMidiValue = null
+      return null
+    }
 
     const midiValue = midiFromFrequency(frequency)
     const nearestMidi = Math.round(midiValue)
     const centsOff = Math.abs(midiValue - nearestMidi) * 100
-    if (centsOff > 35) return null
+    if (centsOff > MIC_STABLE_CENTS) {
+      if (mic.lockedMidi !== null && nowMs < mic.lockUntil) {
+        return {
+          frequency,
+          midiValue: mic.lockedMidiValue ?? mic.lockedMidi,
+          nearestMidi: mic.lockedMidi,
+          centsOff: 0,
+          stable: true,
+        }
+      }
+      return {
+        frequency,
+        midiValue,
+        nearestMidi,
+        centsOff,
+        stable: false,
+      }
+    }
 
-    if (nowMs - mic.lastHitAt < 220) return null
-    mic.lastHitAt = nowMs
-    return nearestMidi
+    mic.pitchHistory.push({ midi: nearestMidi, midiValue, at: nowMs })
+    if (mic.pitchHistory.length > MIC_HISTORY_SIZE) {
+      mic.pitchHistory.shift()
+    }
+
+    const counts = new Map()
+    for (const sample of mic.pitchHistory) {
+      counts.set(sample.midi, (counts.get(sample.midi) ?? 0) + 1)
+    }
+
+    let dominantMidi = nearestMidi
+    let dominantCount = 0
+    for (const [midi, count] of counts.entries()) {
+      if (count > dominantCount) {
+        dominantMidi = midi
+        dominantCount = count
+      }
+    }
+
+    const hasConfirmedPitch = dominantCount >= MIC_CONFIRM_FRAMES
+    const shouldResistJump =
+      mic.lockedMidi !== null &&
+      Math.abs(dominantMidi - mic.lockedMidi) > MIC_MAX_JUMP_SEMITONES &&
+      dominantCount < MIC_CONFIRM_FRAMES + 1 &&
+      nowMs < mic.lockUntil + 90
+
+    if (hasConfirmedPitch && !shouldResistJump) {
+      const dominantSamples = mic.pitchHistory.filter((sample) => sample.midi === dominantMidi)
+      const averageMidiValue =
+        dominantSamples.reduce((sum, sample) => sum + sample.midiValue, 0) / dominantSamples.length
+
+      mic.lockedMidi = dominantMidi
+      mic.lockedMidiValue = averageMidiValue
+      mic.lockUntil = nowMs + MIC_NOTE_HOLD_MS
+
+      return {
+        frequency,
+        midiValue: averageMidiValue,
+        nearestMidi: dominantMidi,
+        centsOff: Math.abs(averageMidiValue - dominantMidi) * 100,
+        stable: true,
+      }
+    }
+
+    if (mic.lockedMidi !== null && nowMs < mic.lockUntil) {
+      return {
+        frequency,
+        midiValue: mic.lockedMidiValue ?? mic.lockedMidi,
+        nearestMidi: mic.lockedMidi,
+        centsOff: 0,
+        stable: true,
+      }
+    }
+
+    return {
+      frequency,
+      midiValue,
+      nearestMidi,
+      centsOff,
+      stable: false,
+    }
+  }
+
+  const pitchTesterLoop = () => {
+    const pitch = readMicrophonePitch()
+
+    if (!pitch) {
+      setTesterReading({
+        label: '--',
+        midiValue: null,
+        centsOff: null,
+        stable: false,
+      })
+    } else {
+      setTesterReading({
+        label: midiToDisplayName(pitch.nearestMidi),
+        midiValue: pitch.midiValue,
+        centsOff: Math.round((pitch.midiValue - pitch.nearestMidi) * 100),
+        stable: pitch.stable,
+      })
+    }
+
+    testerRafRef.current = requestAnimationFrame(pitchTesterLoop)
+  }
+
+  const openPitchTester = async () => {
+    stopGameLoop()
+    stopAudio()
+    stopPitchTesterLoop()
+    setTesterReading({
+      label: '--',
+      midiValue: null,
+      centsOff: null,
+      stable: false,
+    })
+
+    try {
+      await setupMicrophone()
+      setShowPitchTester(true)
+      testerRafRef.current = requestAnimationFrame(pitchTesterLoop)
+    } catch {
+      setMicStatus('error')
+      setShowPitchTester(false)
+    }
   }
 
   const playReferenceNote = (midi) => {
@@ -444,12 +679,9 @@ function App() {
 
   const detectAndApplyHit = (state, nowMs) => {
     const mic = micRef.current
-    if (!mic.analyser || !mic.audioContext || !mic.data) return
+    const pitch = readMicrophonePitch()
 
-    mic.analyser.getFloatTimeDomainData(mic.data)
-    const frequency = autoCorrelate(mic.data, mic.audioContext.sampleRate)
-
-    if (frequency <= 0) {
+    if (!pitch) {
       if (nowMs - mic.lastNoteUpdate > 120) {
         setDetectedNote('--')
         mic.lastNoteUpdate = nowMs
@@ -457,11 +689,7 @@ function App() {
       return
     }
 
-    const midiValue = midiFromFrequency(frequency)
-    const nearestMidi = Math.round(midiValue)
-    const centsOff = Math.abs(midiValue - nearestMidi) * 100
-
-    if (centsOff > 35) {
+    if (!pitch.stable) {
       if (nowMs - mic.lastNoteUpdate > 120) {
         setDetectedNote('...')
         mic.lastNoteUpdate = nowMs
@@ -470,7 +698,7 @@ function App() {
     }
 
     if (nowMs - mic.lastNoteUpdate > 120) {
-      setDetectedNote(midiToDisplayName(nearestMidi))
+      setDetectedNote(midiToDisplayName(pitch.nearestMidi))
       mic.lastNoteUpdate = nowMs
     }
 
@@ -479,12 +707,12 @@ function App() {
     const targetIndex = state.notes.findIndex((note) => {
       if (note.destroyAt !== null) return false
       if (!(note.y >= HIT_MIN_Y && note.y < PIANO_LINE_Y)) return false
-      return note.remainingMidis.includes(nearestMidi)
+      return note.remainingMidis.includes(pitch.nearestMidi)
     })
 
     if (targetIndex !== -1) {
       const target = state.notes[targetIndex]
-      target.remainingMidis = target.remainingMidis.filter((midi) => midi !== nearestMidi)
+      target.remainingMidis = target.remainingMidis.filter((midi) => midi !== pitch.nearestMidi)
       state.streak += 1
       state.score += 6 + Math.min(state.streak, 18)
       const distance = Math.sqrt((target.x - 50) ** 2 + (target.y - 92) ** 2)
@@ -502,6 +730,7 @@ function App() {
         startAt: nowMs,
         endAt: bulletEndAt,
       })
+      playSfx(EAR_SFX.shipBlast, 0.51)
       state.nextBulletId += 1
 
       if (target.remainingMidis.length === 0) {
@@ -517,6 +746,8 @@ function App() {
     const randomIndex = Math.floor(Math.random() * EAR_NOTE_POOL.length)
     state.targetMidi = EAR_NOTE_POOL[randomIndex]
     state.mode = 'resolving'
+    state.captureStartedAt = null
+    state.heardMidis = []
     setEarInputNote('--')
     setEarTimerLeft(10)
     setEarConductorState('idle')
@@ -691,20 +922,43 @@ function App() {
       const remainingMs = Math.max(0, state.roundDeadline - nowMs)
       setEarTimerLeft(Math.ceil(remainingMs / 1000))
 
-      const detectedMidi = detectMicrophoneMidi(nowMs)
-      if (detectedMidi !== null) {
-        setEarInputNote(midiToSimpleLabel(detectedMidi))
+      const pitch = readMicrophonePitch()
+      if (pitch?.stable) {
+        setEarInputNote(midiToSimpleLabel(pitch.nearestMidi))
+        if (state.captureStartedAt === null) {
+          state.captureStartedAt = nowMs
+          state.heardMidis = []
+        }
+        state.heardMidis.push(pitch.nearestMidi)
+      }
+
+      const captureIsReady =
+        state.captureStartedAt !== null &&
+        nowMs - state.captureStartedAt >= EAR_CAPTURE_WINDOW_MS &&
+        state.heardMidis.length >= EAR_CAPTURE_MIN_SAMPLES
+
+      if (captureIsReady) {
+        const dominantPitchClass = getDominantPitchClass(state.heardMidis)
+        const previewMidi =
+          state.heardMidis.find((midi) => midi % 12 === dominantPitchClass) ?? state.heardMidis[0]
+
         state.mode = 'resolving'
+        state.captureStartedAt = null
+        state.heardMidis = []
+        setEarInputNote(midiToSimpleLabel(previewMidi))
+
         scheduleEarTimeout(() => {
           const liveState = gameStateRef.current
           if (!liveState || liveState.type !== 'ear') return
-          if (detectedMidi % 12 === liveState.targetMidi % 12) {
+          if (dominantPitchClass === liveState.targetMidi % 12) {
             handleEarCorrect(liveState)
           } else {
             handleEarWrong(liveState)
           }
         }, EAR_FEEDBACK_DELAY_MS)
       } else if (remainingMs <= 0) {
+        state.captureStartedAt = null
+        state.heardMidis = []
         setEarInputNote('TIME')
         handleEarWrong(state)
       }
@@ -859,13 +1113,18 @@ function App() {
       })
 
     if (misses > 0) {
-      state.lives -= misses
+      const nextLives = state.lives - misses
+      if (nextLives > 0) {
+        playSfx(EAR_SFX.shipDamage, 0.56)
+      }
+      state.lives = nextLives
       state.streak = 0
     }
 
     detectAndApplyHit(state, nowMs)
 
     if (state.lives <= 0) {
+      playSfx(EAR_SFX.shipExplode, 0.62)
       const burstParticles = []
       for (let i = 0; i < 75; i += 1) {
         const angle = Math.random() * Math.PI * 2
@@ -917,7 +1176,9 @@ function App() {
 
   const startRun = async () => {
     stopGameLoop()
+    stopPitchTesterLoop()
     stopAudio()
+    setShowPitchTester(false)
 
     setLives(3)
     setScore(0)
@@ -964,6 +1225,7 @@ function App() {
 
   const startEarRun = async () => {
     stopGameLoop()
+    stopPitchTesterLoop()
     stopAudio()
     clearEarTimeouts()
     stopHeartbeatLoop()
@@ -985,6 +1247,8 @@ function App() {
       round: 1,
       highestRound: 1,
       bulletsLoaded: 0,
+      captureStartedAt: null,
+      heardMidis: [],
       playedTaunts: {
         littleTroubleThere: false,
         notQuiteMyTempo: false,
@@ -1014,6 +1278,7 @@ function App() {
   useEffect(() => {
     return () => {
       stopGameLoop()
+      stopPitchTesterLoop()
       stopAudio()
       stopHeartbeatLoop()
       if (toneRef.current.sampler) {
@@ -1037,6 +1302,9 @@ function App() {
           <h1 className="crawl-title">Piano Drills</h1>
           <button className="start-button" onClick={() => setShowGamePicker(true)}>
             Start
+          </button>
+          <button className="secondary test-button" onClick={openPitchTester}>
+            Test
           </button>
           {micStatus === 'error' && (
             <p className="error">Microphone permission is required to play.</p>
@@ -1253,6 +1521,40 @@ function App() {
             </button>
             <button className="secondary" onClick={() => setShowSettings(false)}>
               Cancel
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {showPitchTester && (
+        <aside className="modal-backdrop" onClick={closePitchTester}>
+          <div className="modal tester-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Pitch Test</h2>
+            <p className="tester-copy">Play a note and watch where the detector places it.</p>
+            <div className="tester-readout">
+              <span>{testerReading.label}</span>
+              <span>
+                {testerReading.midiValue === null
+                  ? 'Waiting for input'
+                  : `${testerReading.centsOff > 0 ? '+' : ''}${testerReading.centsOff} cents`}
+              </span>
+            </div>
+            <div className="tester-scale" aria-label="Pitch detector scale">
+              <div className="tester-track" />
+              <div
+                className={`tester-indicator ${testerReading.stable ? 'is-stable' : ''}`}
+                style={{ left: `${getTesterPositionPercent(testerReading.midiValue)}%` }}
+              />
+              <div className="tester-ticks" aria-hidden="true">
+                {TESTER_NOTE_RANGE.map((midi) => (
+                  <div key={midi} className="tester-tick">
+                    <span>{midiToDisplayName(midi)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button className="secondary" onClick={closePitchTester}>
+              Close
             </button>
           </div>
         </aside>

@@ -117,6 +117,11 @@ p {
   filter: brightness(1.08);
 }
 
+.test-button {
+  margin-top: 12px;
+  min-width: 180px;
+}
+
 .primary {
   border: none;
   border-radius: 12px;
@@ -324,6 +329,80 @@ p {
   padding: 9px;
   background: #ffffff;
   color: #171b21;
+}
+
+.tester-modal {
+  width: min(760px, 94vw);
+}
+
+.tester-copy {
+  color: #4f5761;
+  margin: 0;
+}
+
+.tester-readout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f5f7fa;
+  border: 1px solid #d8dde5;
+  font-weight: 700;
+  color: #171b21;
+}
+
+.tester-scale {
+  position: relative;
+  padding: 30px 12px 0;
+}
+
+.tester-track {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dfe5ec, #cbd4de);
+  border: 1px solid #bcc6d1;
+  box-shadow: inset 0 1px 2px rgba(17, 22, 28, 0.14);
+}
+
+.tester-indicator {
+  position: absolute;
+  top: 7px;
+  width: 18px;
+  height: 30px;
+  border-radius: 999px;
+  background: #15191d;
+  transform: translateX(-50%);
+  box-shadow: 0 8px 18px rgba(14, 19, 24, 0.25);
+}
+
+.tester-indicator.is-stable {
+  background: #0d6a32;
+}
+
+.tester-ticks {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: 0;
+}
+
+.tester-tick {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: #22272d;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tester-tick::before {
+  content: '';
+  width: 1px;
+  height: 14px;
+  background: #aeb8c4;
 }
 
 .picker-backdrop {
@@ -586,6 +665,20 @@ p {
     height: 62px;
     border-radius: 16px;
     font-size: 1.1rem;
+  }
+
+  .tester-readout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tester-scale {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .tester-tick {
+    font-size: 0.62rem;
   }
 
   .game-card-grid {
