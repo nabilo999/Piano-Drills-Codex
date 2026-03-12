@@ -19,66 +19,65 @@ const MIC_NOTE_HOLD_MS = 180
 const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
 const LEVEL_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
 const MOVEMENT_OPTIONS = ['staggered', 'classic']
-const NOTE_SPRITES = import.meta.glob('./notes/*.png', { eager: true, import: 'default' })
-const CONDUCTOR_SPRITES = import.meta.glob('./assets/conductor/*.png', {
-  eager: true,
+const UI_FRAME_MS = 1000 / 30
+const AUDIO_UNLOCK_SRC =
+  'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='
+const NOTE_SPRITE_LOADERS = import.meta.glob('./notes/*.png', { import: 'default' })
+const CONDUCTOR_SPRITE_LOADERS = import.meta.glob('./assets/conductor/*.png', {
   import: 'default',
 })
-const REVOLVER_SPRITES = import.meta.glob('./assets/revolver/*.png', {
-  eager: true,
+const REVOLVER_SPRITE_LOADERS = import.meta.glob('./assets/revolver/*.png', {
   import: 'default',
 })
-const EAR_BACKGROUND = import.meta.glob('./assets/background.png', {
-  eager: true,
+const EAR_BACKGROUND_LOADERS = import.meta.glob('./assets/background.png', {
   import: 'default',
 })
-const SFX_FILES = import.meta.glob('./assets/sfx/*.mp3', {
-  eager: true,
+const SFX_LOADERS = import.meta.glob('./assets/sfx/*.mp3', {
   import: 'default',
 })
-const NOTE_SPRITE_MAP = Object.fromEntries(
-  Object.entries(NOTE_SPRITES).map(([path, url]) => {
-    const fileName = path.split('/').pop()
-    const key = fileName.replace('.png', '')
-    return [key, url]
-  }),
-)
-const CONDUCTOR_MAP = Object.fromEntries(
-  Object.entries(CONDUCTOR_SPRITES).map(([path, url]) => [path.split('/').pop(), url]),
-)
-const REVOLVER_MAP = Object.fromEntries(
-  Object.entries(REVOLVER_SPRITES).map(([path, url]) => [path.split('/').pop(), url]),
-)
-const EAR_BACKGROUND_URL = EAR_BACKGROUND['./assets/background.png'] ?? null
+const EMPTY_SFX_BANK = {
+  correct: null,
+  wrong: null,
+  reloads: [],
+  pump: null,
+  shotgunBlast: null,
+  shellFalling: null,
+  dryFire: [],
+  heartbeatMed: null,
+  heartbeatFast: null,
+  littleTroubleThere: null,
+  notQuiteMyTempo: null,
+  youreDone: null,
+  shipBlast: null,
+  shipDamage: null,
+  shipExplode: null,
+}
+
+const buildSfxBank = (map) => {
+  const get = (key) => map?.[key] ?? null
+  return {
+    correct: get('correct'),
+    wrong: get('wrong'),
+    reloads: [get('shell_load1'), get('shell_load2'), get('shot_load3')].filter(Boolean),
+    pump: get('pump_action'),
+    shotgunBlast: get('shotgun_blast'),
+    shellFalling: get('shell_falling'),
+    dryFire: [get('dry_fire1'), get('dry_fire2')].filter(Boolean),
+    heartbeatMed: get('heartbeat_med'),
+    heartbeatFast: get('heartbeat_fast'),
+    littleTroubleThere: get('little_trouble_there'),
+    notQuiteMyTempo: get('not_quite_my_tempo'),
+    youreDone: get('youre_done'),
+    shipBlast: get('ship_blast'),
+    shipDamage: get('ship_damage'),
+    shipExplode: get('ship_explode'),
+  }
+}
 const EAR_NOTE_POOL = [60, 62, 64, 65, 67, 69, 71]
 const TESTER_NOTE_RANGE = Array.from({ length: 13 }, (_, index) => 60 + index)
 const EAR_FEEDBACK_DELAY_MS = 900
 const EAR_CAPTURE_WINDOW_MS = 260
 const EAR_CAPTURE_MIN_SAMPLES = 3
-const EAR_SFX = {
-  correct: SFX_FILES['./assets/sfx/correct.mp3'] ?? null,
-  wrong: SFX_FILES['./assets/sfx/wrong.mp3'] ?? null,
-  reloads: [
-    SFX_FILES['./assets/sfx/shell_load1.mp3'] ?? null,
-    SFX_FILES['./assets/sfx/shell_load2.mp3'] ?? null,
-    SFX_FILES['./assets/sfx/shot_load3.mp3'] ?? null,
-  ].filter(Boolean),
-  pump: SFX_FILES['./assets/sfx/pump_action.mp3'] ?? null,
-  shotgunBlast: SFX_FILES['./assets/sfx/shotgun_blast.mp3'] ?? null,
-  shellFalling: SFX_FILES['./assets/sfx/shell_falling.mp3'] ?? null,
-  dryFire: [
-    SFX_FILES['./assets/sfx/dry_fire1.mp3'] ?? null,
-    SFX_FILES['./assets/sfx/dry_fire2.mp3'] ?? null,
-  ].filter(Boolean),
-  heartbeatMed: SFX_FILES['./assets/sfx/heartbeat_med.mp3'] ?? null,
-  heartbeatFast: SFX_FILES['./assets/sfx/heartbeat_fast.mp3'] ?? null,
-  littleTroubleThere: SFX_FILES['./assets/sfx/little_trouble_there.mp3'] ?? null,
-  notQuiteMyTempo: SFX_FILES['./assets/sfx/not_quite_my_tempo.mp3'] ?? null,
-  youreDone: SFX_FILES['./assets/sfx/youre_done.mp3'] ?? null,
-  shipBlast: SFX_FILES['./assets/sfx/ship_blast.mp3'] ?? null,
-  shipDamage: SFX_FILES['./assets/sfx/ship_damage.mp3'] ?? null,
-  shipExplode: SFX_FILES['./assets/sfx/ship_explode.mp3'] ?? null,
-}
 
 function midiToNoteName(midi) {
   const pitchClass = midi % 12
@@ -102,17 +101,17 @@ function midiToSpriteToken(midi) {
   return midiToNoteName(midi).toLowerCase().replace('#', 's')
 }
 
-function getNoteSprite(clef, midi) {
+function getNoteSprite(clef, midi, noteSpriteMap) {
   const key = `${clef}_${midiToSpriteToken(midi)}`
-  return NOTE_SPRITE_MAP[key] ?? null
+  return noteSpriteMap?.[key] ?? null
 }
 
-function getConductorSprite(state) {
-  return CONDUCTOR_MAP[`${state}.png`] ?? null
+function getConductorSprite(state, conductorMap) {
+  return conductorMap?.[`${state}.png`] ?? null
 }
 
-function getRevolverSprite(shots) {
-  return REVOLVER_MAP[`${shots}_shots.png`] ?? null
+function getRevolverSprite(shots, revolverMap) {
+  return revolverMap?.[`${shots}_shots.png`] ?? null
 }
 
 function clamp(value, min, max) {
@@ -252,6 +251,11 @@ function App() {
     movement: 'staggered',
   })
 
+  const [noteSpriteMap, setNoteSpriteMap] = useState({})
+  const [conductorMap, setConductorMap] = useState({})
+  const [revolverMap, setRevolverMap] = useState({})
+  const [earBackgroundUrl, setEarBackgroundUrl] = useState(null)
+
   const [notes, setNotes] = useState([])
   const [bullets, setBullets] = useState([])
   const [particles, setParticles] = useState([])
@@ -282,6 +286,24 @@ function App() {
   const notePoolRef = useRef([])
   const gameStateRef = useRef(null)
   const earTimeoutsRef = useRef([])
+  const assetLoadRef = useRef({
+    notes: null,
+    conductor: null,
+    revolver: null,
+    background: null,
+    sfx: null,
+  })
+  const audioUnlockRef = useRef({
+    done: false,
+    audio: null,
+    context: null,
+  })
+  const lastArcadeUiSyncRef = useRef(0)
+  const earUiRef = useRef({
+    timerLeft: 10,
+    inputNote: '--',
+    lastNoteAt: 0,
+  })
   const toneRef = useRef({
     sampler: null,
     ready: false,
@@ -290,6 +312,8 @@ function App() {
   const sfxRef = useRef({
     heartbeat: null,
     heartbeatMode: null,
+    preloaded: new Map(),
+    bank: EMPTY_SFX_BANK,
   })
   const micRef = useRef({
     stream: null,
@@ -303,6 +327,193 @@ function App() {
     lockedMidiValue: null,
     lockUntil: 0,
   })
+
+  const loadNoteSprites = () => {
+    if (assetLoadRef.current.notes) return assetLoadRef.current.notes
+    assetLoadRef.current.notes = Promise.all(
+      Object.entries(NOTE_SPRITE_LOADERS).map(async ([path, loader]) => {
+        try {
+          const url = await loader()
+          const fileName = path.split('/').pop()
+          const key = fileName.replace('.png', '')
+          return [key, url]
+        } catch {
+          return null
+        }
+      }),
+    ).then((entries) => {
+      const map = Object.fromEntries(entries.filter(Boolean))
+      setNoteSpriteMap(map)
+      return map
+    })
+    return assetLoadRef.current.notes
+  }
+
+  const loadConductorSprites = () => {
+    if (assetLoadRef.current.conductor) return assetLoadRef.current.conductor
+    assetLoadRef.current.conductor = Promise.all(
+      Object.entries(CONDUCTOR_SPRITE_LOADERS).map(async ([path, loader]) => {
+        try {
+          const url = await loader()
+          const key = path.split('/').pop()
+          return [key, url]
+        } catch {
+          return null
+        }
+      }),
+    ).then((entries) => {
+      const map = Object.fromEntries(entries.filter(Boolean))
+      setConductorMap(map)
+      return map
+    })
+    return assetLoadRef.current.conductor
+  }
+
+  const loadRevolverSprites = () => {
+    if (assetLoadRef.current.revolver) return assetLoadRef.current.revolver
+    assetLoadRef.current.revolver = Promise.all(
+      Object.entries(REVOLVER_SPRITE_LOADERS).map(async ([path, loader]) => {
+        try {
+          const url = await loader()
+          const key = path.split('/').pop()
+          return [key, url]
+        } catch {
+          return null
+        }
+      }),
+    ).then((entries) => {
+      const map = Object.fromEntries(entries.filter(Boolean))
+      setRevolverMap(map)
+      return map
+    })
+    return assetLoadRef.current.revolver
+  }
+
+  const loadEarBackground = () => {
+    if (assetLoadRef.current.background) return assetLoadRef.current.background
+    const loader = EAR_BACKGROUND_LOADERS['./assets/background.png']
+    assetLoadRef.current.background = (async () => {
+      if (!loader) return null
+      try {
+        const url = await loader()
+        setEarBackgroundUrl(url ?? null)
+        return url
+      } catch {
+        setEarBackgroundUrl(null)
+        return null
+      }
+    })()
+    return assetLoadRef.current.background
+  }
+
+  const loadSfx = () => {
+    if (assetLoadRef.current.sfx) return assetLoadRef.current.sfx
+    assetLoadRef.current.sfx = Promise.all(
+      Object.entries(SFX_LOADERS).map(async ([path, loader]) => {
+        try {
+          const url = await loader()
+          const fileName = path.split('/').pop()
+          const key = fileName.replace('.mp3', '')
+          return [key, url]
+        } catch {
+          return null
+        }
+      }),
+    ).then((entries) => {
+      const map = Object.fromEntries(entries.filter(Boolean))
+      sfxRef.current.bank = buildSfxBank(map)
+      return map
+    })
+    return assetLoadRef.current.sfx
+  }
+
+  const ensureAudioUnlocked = () => {
+    if (audioUnlockRef.current.done) return
+    audioUnlockRef.current.done = true
+
+    try {
+      const audio = new Audio(AUDIO_UNLOCK_SRC)
+      audio.volume = 0
+      const playPromise = audio.play()
+      if (playPromise?.catch) {
+        playPromise.catch(() => {})
+      }
+      audioUnlockRef.current.audio = audio
+    } catch {
+      // Ignore unlock failures; a later user gesture can still succeed.
+    }
+
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      if (!AudioContext) return
+      const context = new AudioContext()
+      const buffer = context.createBuffer(1, 1, 22050)
+      const source = context.createBufferSource()
+      source.buffer = buffer
+      source.connect(context.destination)
+      source.start(0)
+      if (context.state === 'suspended' && context.resume) {
+        context.resume().catch(() => {})
+      }
+      audioUnlockRef.current.context = context
+      setTimeout(() => {
+        context.close?.().catch(() => {})
+      }, 200)
+    } catch {
+      // Ignore unlock failures; audio can still work via HTMLAudioElement.
+    }
+  }
+
+  const preloadSfx = async () => {
+    const map = await loadSfx()
+    if (!map) return
+    const preloadAudio = (url) =>
+      new Promise((resolve) => {
+        if (sfxRef.current.preloaded.has(url)) {
+          resolve(sfxRef.current.preloaded.get(url))
+          return
+        }
+        const audio = new Audio(url)
+        audio.preload = 'auto'
+        const cleanup = () => {
+          audio.removeEventListener('canplaythrough', onReady)
+          audio.removeEventListener('loadeddata', onReady)
+          audio.removeEventListener('error', onError)
+          if (timeoutId) clearTimeout(timeoutId)
+        }
+        const onReady = () => {
+          cleanup()
+          sfxRef.current.preloaded.set(url, audio)
+          resolve(audio)
+        }
+        const onError = () => {
+          cleanup()
+          resolve(null)
+        }
+        const timeoutId = setTimeout(() => {
+          cleanup()
+          sfxRef.current.preloaded.set(url, audio)
+          resolve(audio)
+        }, 1500)
+        audio.addEventListener('canplaythrough', onReady, { once: true })
+        audio.addEventListener('loadeddata', onReady, { once: true })
+        audio.addEventListener('error', onError, { once: true })
+        audio.load()
+      })
+
+    await Promise.allSettled(Object.values(map).filter(Boolean).map(preloadAudio))
+  }
+
+  const syncArcadeUi = (state, nowMs, force = false) => {
+    if (!force && nowMs - lastArcadeUiSyncRef.current < UI_FRAME_MS) return
+    lastArcadeUiSyncRef.current = nowMs
+    setNotes([...state.notes])
+    setBullets([...state.bullets])
+    setParticles([...state.particles])
+    setLives(state.lives)
+    setScore(state.score)
+    setStreak(state.streak)
+  }
 
   const stopAudio = () => {
     const mic = micRef.current
@@ -730,7 +941,7 @@ function App() {
         startAt: nowMs,
         endAt: bulletEndAt,
       })
-      playSfx(EAR_SFX.shipBlast, 0.51)
+      playSfx(sfxRef.current.bank.shipBlast, 0.51)
       state.nextBulletId += 1
 
       if (target.remainingMidis.length === 0) {
@@ -751,6 +962,9 @@ function App() {
     setEarInputNote('--')
     setEarTimerLeft(10)
     setEarConductorState('idle')
+    earUiRef.current.timerLeft = 10
+    earUiRef.current.inputNote = '--'
+    earUiRef.current.lastNoteAt = 0
     stopHeartbeatLoop()
     playReferenceNote(state.targetMidi)
     scheduleEarTimeout(() => {
@@ -765,8 +979,12 @@ function App() {
   }
 
   const playSfx = (url, volume = 0.72) => {
-    if (!url) return
-    const audio = new Audio(url)
+    if (!url) {
+      void loadSfx()
+      return
+    }
+    const cached = sfxRef.current.preloaded.get(url)
+    const audio = cached ? cached.cloneNode(true) : new Audio(url)
     audio.volume = volume
     audio.play().catch(() => {})
   }
@@ -787,7 +1005,7 @@ function App() {
 
   const startHeartbeatLoop = (bulletsLoaded) => {
     const mode = bulletsLoaded >= 4 ? 'fast' : 'med'
-    const nextUrl = mode === 'fast' ? EAR_SFX.heartbeatFast : EAR_SFX.heartbeatMed
+    const nextUrl = mode === 'fast' ? sfxRef.current.bank.heartbeatFast : sfxRef.current.bank.heartbeatMed
     if (!nextUrl) return
     if (sfxRef.current.heartbeat && sfxRef.current.heartbeatMode === mode) return
 
@@ -808,7 +1026,7 @@ function App() {
       !state.playedTaunts.littleTroubleThere &&
       Math.random() < 0.1
     ) {
-      playSfx(EAR_SFX.littleTroubleThere, 0.72)
+      playSfx(sfxRef.current.bank.littleTroubleThere, 0.72)
       state.playedTaunts.littleTroubleThere = true
       return
     }
@@ -818,14 +1036,14 @@ function App() {
       !state.playedTaunts.notQuiteMyTempo &&
       Math.random() < 0.1
     ) {
-      playSfx(EAR_SFX.notQuiteMyTempo, 0.72)
+      playSfx(sfxRef.current.bank.notQuiteMyTempo, 0.72)
       state.playedTaunts.notQuiteMyTempo = true
     }
   }
 
   const playAimTaunt = (bulletsLoaded) => {
     if (bulletsLoaded >= 6) {
-      playSfx(EAR_SFX.youreDone, 0.78)
+      playSfx(sfxRef.current.bank.youreDone, 0.78)
     }
   }
 
@@ -841,7 +1059,7 @@ function App() {
   const handleEarCorrect = (state) => {
     state.mode = 'resolving'
     stopHeartbeatLoop()
-    playSfx(EAR_SFX.correct, 0.7)
+    playSfx(sfxRef.current.bank.correct, 0.7)
     state.round += 1
     if (state.round > state.highestRound) {
       state.highestRound = state.round
@@ -861,11 +1079,11 @@ function App() {
     state.mode = 'resolving'
     stopHeartbeatLoop()
     setEarConductorState('wrong')
-    playSfx(EAR_SFX.wrong, 0.72)
+    playSfx(sfxRef.current.bank.wrong, 0.72)
 
     scheduleEarTimeout(() => {
       setEarConductorState('reload')
-      playRandomSfx(EAR_SFX.reloads, 0.72)
+      playRandomSfx(sfxRef.current.bank.reloads, 0.72)
       state.bulletsLoaded = clamp(state.bulletsLoaded + 1, 0, 6)
       setEarBulletsLoaded(state.bulletsLoaded)
       playReloadTaunt(state)
@@ -875,7 +1093,7 @@ function App() {
     scheduleEarTimeout(() => {
       setEarConductorState('aim')
       setEarAimShake(true)
-      playSfx(EAR_SFX.pump, 0.66)
+      playSfx(sfxRef.current.bank.pump, 0.66)
       playAimTaunt(state.bulletsLoaded)
       startHeartbeatLoop(state.bulletsLoaded)
     }, 3900)
@@ -886,8 +1104,8 @@ function App() {
       if (fire) {
         setEarAimShake(false)
         setEarConductorState('fire')
-        playSfx(EAR_SFX.shotgunBlast, 0.8)
-        scheduleEarTimeout(() => playSfx(EAR_SFX.shellFalling, 0.62), 220)
+        playSfx(sfxRef.current.bank.shotgunBlast, 0.8)
+        scheduleEarTimeout(() => playSfx(sfxRef.current.bank.shellFalling, 0.62), 220)
         scheduleEarTimeout(() => {
           setEarFlashActive(true)
         }, 500)
@@ -898,7 +1116,7 @@ function App() {
         }, 680)
       } else {
         // Keep aiming while dry-fire plays, then release back to idle.
-        playRandomSfx(EAR_SFX.dryFire, 0.72)
+        playRandomSfx(sfxRef.current.bank.dryFire, 0.72)
         scheduleEarTimeout(() => {
           setEarAimShake(false)
           state.round += 1
@@ -920,11 +1138,23 @@ function App() {
 
     if (state.mode === 'awaiting') {
       const remainingMs = Math.max(0, state.roundDeadline - nowMs)
-      setEarTimerLeft(Math.ceil(remainingMs / 1000))
+      const secondsLeft = Math.ceil(remainingMs / 1000)
+      if (secondsLeft !== earUiRef.current.timerLeft) {
+        earUiRef.current.timerLeft = secondsLeft
+        setEarTimerLeft(secondsLeft)
+      }
 
       const pitch = readMicrophonePitch()
       if (pitch?.stable) {
-        setEarInputNote(midiToSimpleLabel(pitch.nearestMidi))
+        const label = midiToSimpleLabel(pitch.nearestMidi)
+        if (
+          label !== earUiRef.current.inputNote &&
+          nowMs - earUiRef.current.lastNoteAt >= UI_FRAME_MS
+        ) {
+          earUiRef.current.inputNote = label
+          earUiRef.current.lastNoteAt = nowMs
+          setEarInputNote(label)
+        }
         if (state.captureStartedAt === null) {
           state.captureStartedAt = nowMs
           state.heardMidis = []
@@ -945,7 +1175,12 @@ function App() {
         state.mode = 'resolving'
         state.captureStartedAt = null
         state.heardMidis = []
-        setEarInputNote(midiToSimpleLabel(previewMidi))
+        const previewLabel = midiToSimpleLabel(previewMidi)
+        if (previewLabel !== earUiRef.current.inputNote) {
+          earUiRef.current.inputNote = previewLabel
+          earUiRef.current.lastNoteAt = nowMs
+          setEarInputNote(previewLabel)
+        }
 
         scheduleEarTimeout(() => {
           const liveState = gameStateRef.current
@@ -959,7 +1194,11 @@ function App() {
       } else if (remainingMs <= 0) {
         state.captureStartedAt = null
         state.heardMidis = []
-        setEarInputNote('TIME')
+        if (earUiRef.current.inputNote !== 'TIME') {
+          earUiRef.current.inputNote = 'TIME'
+          earUiRef.current.lastNoteAt = nowMs
+          setEarInputNote('TIME')
+        }
         handleEarWrong(state)
       }
     }
@@ -990,11 +1229,7 @@ function App() {
           }
         })
 
-      setNotes([])
-      setBullets([])
-      setParticles([...state.particles])
-      setLives(0)
-      setStreak(0)
+      syncArcadeUi(state, nowMs)
 
       if (nowMs >= state.deathEndsAt && state.particles.length === 0) {
         endRun()
@@ -1115,7 +1350,7 @@ function App() {
     if (misses > 0) {
       const nextLives = state.lives - misses
       if (nextLives > 0) {
-        playSfx(EAR_SFX.shipDamage, 0.56)
+        playSfx(sfxRef.current.bank.shipDamage, 0.56)
       }
       state.lives = nextLives
       state.streak = 0
@@ -1124,7 +1359,7 @@ function App() {
     detectAndApplyHit(state, nowMs)
 
     if (state.lives <= 0) {
-      playSfx(EAR_SFX.shipExplode, 0.62)
+      playSfx(sfxRef.current.bank.shipExplode, 0.62)
       const burstParticles = []
       for (let i = 0; i < 75; i += 1) {
         const angle = Math.random() * Math.PI * 2
@@ -1154,27 +1389,19 @@ function App() {
       state.deathStartedAt = nowMs
       state.deathEndsAt = nowMs + 900
 
-      setNotes([])
-      setLives(0)
-      setStreak(0)
-      setBullets([])
-      setParticles([...state.particles])
+      syncArcadeUi(state, nowMs, true)
 
       rafRef.current = requestAnimationFrame(gameLoop)
       return
     }
 
-    setNotes([...state.notes])
-    setBullets([...state.bullets])
-    setParticles([...state.particles])
-    setLives(state.lives)
-    setScore(state.score)
-    setStreak(state.streak)
+    syncArcadeUi(state, nowMs)
 
     rafRef.current = requestAnimationFrame(gameLoop)
   }
 
   const startRun = async () => {
+    ensureAudioUnlocked()
     stopGameLoop()
     stopPitchTesterLoop()
     stopAudio()
@@ -1187,6 +1414,13 @@ function App() {
     setNotes([])
     setBullets([])
     setParticles([])
+
+    lastArcadeUiSyncRef.current = 0
+    try {
+      await Promise.allSettled([loadNoteSprites(), preloadSfx()])
+    } catch {
+      // Best-effort preload; gameplay can still proceed with fallbacks.
+    }
 
     notePoolRef.current = getPoolForLevel(settings.level)
 
@@ -1224,6 +1458,7 @@ function App() {
   }
 
   const startEarRun = async () => {
+    ensureAudioUnlocked()
     stopGameLoop()
     stopPitchTesterLoop()
     stopAudio()
@@ -1240,6 +1475,20 @@ function App() {
     setEarInputNote('--')
     setEarTimerLeft(10)
     setEarConductorState('idle')
+    earUiRef.current.timerLeft = 10
+    earUiRef.current.inputNote = '--'
+    earUiRef.current.lastNoteAt = 0
+
+    try {
+      await Promise.allSettled([
+        loadConductorSprites(),
+        loadRevolverSprites(),
+        loadEarBackground(),
+        preloadSfx(),
+      ])
+    } catch {
+      // Best-effort preload; gameplay can still proceed with fallbacks.
+    }
 
     gameStateRef.current = {
       type: 'ear',
@@ -1288,6 +1537,12 @@ function App() {
       }
     }
   }, [])
+
+  const conductorSrc = getConductorSprite(earConductorState, conductorMap)
+  const revolverSrc = getRevolverSprite(earBulletsLoaded, revolverMap)
+  const earBackgroundStyle = earBackgroundUrl
+    ? { backgroundImage: `url(${earBackgroundUrl})` }
+    : undefined
 
   return (
     <div
@@ -1352,10 +1607,10 @@ function App() {
             </div>
             {notes.map((note) => {
               const previewMidi =
-                note.remainingMidis.find((midi) => getNoteSprite(note.clef, midi)) ??
+                note.remainingMidis.find((midi) => getNoteSprite(note.clef, midi, noteSpriteMap)) ??
                 note.remainingMidis[0] ??
                 note.midis[0]
-              const spriteSrc = getNoteSprite(note.clef, previewMidi)
+              const spriteSrc = getNoteSprite(note.clef, previewMidi, noteSpriteMap)
 
               return (
                 <article
@@ -1402,14 +1657,12 @@ function App() {
         <main className="ear-game-shell">
           <section
             className={`ear-game-window ${earAimShake ? 'is-aiming-shake' : ''}`}
-            style={
-              EAR_BACKGROUND_URL ? { backgroundImage: `url(${EAR_BACKGROUND_URL})` } : undefined
-            }
+            style={earBackgroundStyle}
           >
-            {getConductorSprite(earConductorState) ? (
+            {conductorSrc ? (
               <img
                 className="conductor-sprite"
-                src={getConductorSprite(earConductorState)}
+                src={conductorSrc}
                 alt="Conductor"
               />
             ) : (
@@ -1419,10 +1672,10 @@ function App() {
             <div className="round-badge">Round {earRound}</div>
 
             <div className={`revolver-panel ${earRevolverShake ? 'is-shaking' : ''}`}>
-              {getRevolverSprite(earBulletsLoaded) ? (
+              {revolverSrc ? (
                 <img
                   className="revolver-sprite"
-                  src={getRevolverSprite(earBulletsLoaded)}
+                  src={revolverSrc}
                   alt={`${earBulletsLoaded} loaded shots`}
                 />
               ) : (
@@ -1615,5 +1868,9 @@ function App() {
 }
 
 export default App
+
+
+
+
 
 
