@@ -53,11 +53,11 @@ select {
   width: 100%;
   min-height: 100vh;
   text-align: center;
-  padding: 0 20px 10vh;
+  padding: 0 20px 25vh;
   margin: 0;
   border: none;
   background-image: url('./assets/piano-banner.png');
-  background-size: cover;
+  background-size: 110% auto;
   background-position: center top;
   background-repeat: no-repeat;
   box-shadow: none;
@@ -104,13 +104,14 @@ p {
   width: 270px;
   height: 70px;
   border: 1px solid #0f1113;
-  border-radius: 18px;
+  border-radius: 0;
   background: #0f1113;
   color: #ffffff;
   font-size: 1.2rem;
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(15, 17, 19, 0.2);
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
 }
 
 .start-button:hover {
@@ -138,12 +139,13 @@ p {
 
 .secondary {
   border: 1px solid #0f1113;
-  border-radius: 12px;
+  border-radius: 0;
   padding: 12px 20px;
   background: #ffffff;
   color: #0f1113;
   font-weight: 700;
   cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
 }
 
 .secondary:hover {
