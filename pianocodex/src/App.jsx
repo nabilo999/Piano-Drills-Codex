@@ -245,6 +245,11 @@ function App() {
   const [showGamePicker, setShowGamePicker] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPitchTester, setShowPitchTester] = useState(false)
+  const [showLandingSettings, setShowLandingSettings] = useState(false)
+  const [showLandingProfile, setShowLandingProfile] = useState(false)
+  const [showLandingLeaderboard, setShowLandingLeaderboard] = useState(false)
+  const [landingMasterVolume, setLandingMasterVolume] = useState(80)
+  const [landingInputType, setLandingInputType] = useState('audio')
   const [settings, setSettings] = useState({
     readSpeed: 3,
     level: 'beginner',
@@ -1555,12 +1560,26 @@ function App() {
       {screen === 'landing' && (
         <main className="landing">
           <h1 className="crawl-title">Piano Drills</h1>
-          <button className="start-button" onClick={() => setShowGamePicker(true)}>
-            Start
-          </button>
-          <button className="secondary test-button" onClick={openPitchTester}>
-            Test
-          </button>
+          <div className="landing-buttons">
+            <button className="start-button" onClick={() => setShowGamePicker(true)}>
+              Start
+            </button>
+            <button className="secondary" onClick={() => setShowLandingSettings(true)}>
+              Settings
+            </button>
+            <button className="secondary" onClick={() => setShowLandingProfile(true)}>
+              Profile
+            </button>
+            <button className="secondary" onClick={() => setShowLandingLeaderboard(true)}>
+              Leaderboard
+            </button>
+            <button className="secondary" type="button">
+              Connect Piano
+            </button>
+            <button className="secondary test-button" onClick={openPitchTester}>
+              Test
+            </button>
+          </div>
           {micStatus === 'error' && (
             <p className="error">Microphone permission is required to play.</p>
           )}
@@ -1809,6 +1828,68 @@ function App() {
             <button className="secondary" onClick={closePitchTester}>
               Close
             </button>
+          </div>
+        </aside>
+      )}
+
+      {showLandingSettings && (
+        <aside className="modal-backdrop" onClick={() => setShowLandingSettings(false)}>
+          <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Settings</h2>
+            <div className="modal-divider" />
+            <label className="modal-field">
+              <span>Master Volume</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={landingMasterVolume}
+                onChange={(event) => setLandingMasterVolume(Number(event.target.value))}
+              />
+            </label>
+            <div className="modal-field">
+              <span>Input Type</span>
+              <div className="toggle-group">
+                <button
+                  className={`toggle-button ${
+                    landingInputType === 'audio' ? 'is-active' : ''
+                  }`}
+                  type="button"
+                  onClick={() => setLandingInputType('audio')}
+                >
+                  Audio
+                </button>
+                <button
+                  className={`toggle-button ${
+                    landingInputType === 'midi' ? 'is-active' : ''
+                  }`}
+                  type="button"
+                  onClick={() => setLandingInputType('midi')}
+                >
+                  MIDI
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {showLandingProfile && (
+        <aside className="modal-backdrop" onClick={() => setShowLandingProfile(false)}>
+          <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Profile</h2>
+            <div className="modal-divider" />
+            <p className="modal-placeholder">To be implemented.</p>
+          </div>
+        </aside>
+      )}
+
+      {showLandingLeaderboard && (
+        <aside className="modal-backdrop" onClick={() => setShowLandingLeaderboard(false)}>
+          <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Leaderboard</h2>
+            <div className="modal-divider" />
+            <p className="modal-placeholder">To be implemented.</p>
           </div>
         </aside>
       )}

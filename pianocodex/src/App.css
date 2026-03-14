@@ -51,7 +51,7 @@ select {
 
 .landing {
   width: 100%;
-  min-height: 100vh;
+  min-height: 125vh;
   text-align: center;
   padding: 0 20px 25vh;
   margin: 0;
@@ -66,6 +66,23 @@ select {
   align-items: center;
   justify-content: flex-end;
 }
+
+.landing-buttons {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  margin-top: 24px;
+}
+
+.landing-buttons button {
+  width: 30vw;
+  height: auto;
+  padding: 10px 0;
+  line-height: 1.1;
+  border: none;
+  box-shadow: 0 0 0 1px #0f1113;
+}
+
 
 h1,
 h2,
@@ -146,6 +163,24 @@ p {
   font-weight: 700;
   cursor: pointer;
   clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+}
+
+.landing-buttons .start-button,
+.landing-buttons .secondary {
+  height: auto;
+  padding: 10px 0;
+  border: none;
+}
+
+.landing-buttons > button:nth-child(odd) {
+  background: #ffffff;
+  color: #0f1113;
+}
+
+.landing-buttons > button:nth-child(even) {
+  background: #0f1113;
+  color: #ffffff;
+  width: 27vw;
 }
 
 .secondary:hover {
@@ -317,6 +352,48 @@ p {
   display: grid;
   gap: 14px;
   color: #161a1f;
+}
+
+.landing-modal {
+  width: min(360px, 90vw);
+  min-height: 480px;
+}
+
+.modal-divider {
+  height: 1px;
+  width: 100%;
+  background: #d8dde4;
+}
+
+.modal-field {
+  display: grid;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #1a1f25;
+}
+
+.toggle-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.toggle-button {
+  border: 1px solid #0f1113;
+  background: #ffffff;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle-button.is-active {
+  background: #0f1113;
+  color: #ffffff;
+}
+
+.modal-placeholder {
+  color: #4f5761;
+  font-size: 0.95rem;
 }
 
 .modal label {
@@ -667,6 +744,16 @@ p {
     height: 62px;
     border-radius: 16px;
     font-size: 1.1rem;
+  }
+
+  .landing-buttons button {
+    width: 30vw;
+    height: auto;
+    padding: 10px 0;
+  }
+
+  .landing-buttons button:nth-child(even) {
+    width: 27vw;
   }
 
   .tester-readout {
