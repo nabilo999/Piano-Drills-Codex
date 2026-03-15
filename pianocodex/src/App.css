@@ -51,13 +51,13 @@ select {
 
 .landing {
   width: 100%;
-  min-height: 125vh;
+  min-height: 100vh;
   text-align: center;
-  padding: 0 20px 25vh;
+  padding: 20px 25vh;
   margin: 0;
   border: none;
   background-image: url('./assets/piano-banner.png');
-  background-size: 110% auto;
+  background-size: 100% auto;
   background-position: center top;
   background-repeat: no-repeat;
   box-shadow: none;
@@ -69,18 +69,47 @@ select {
 
 .landing-buttons {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   justify-items: center;
-  margin-top: 24px;
+  margin-top: 20px;
+}
+
+.landing-buttons .test-button {
+  margin-top: 0;
 }
 
 .landing-buttons button {
   width: 30vw;
   height: auto;
-  padding: 10px 0;
   line-height: 1.1;
   border: none;
-  box-shadow: 0 0 0 1px #0f1113;
+  background: transparent;
+  color: var(--btn-fg, #0f1113);
+  position: relative;
+  isolation: isolate;
+}
+
+.landing-buttons button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+  background: #5a626b;
+  z-index: 0;
+}
+
+.landing-buttons button::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+  background: var(--btn-bg, #ffffff);
+  z-index: 1;
+}
+
+.landing-button-label {
+  position: relative;
+  z-index: 2;
 }
 
 
@@ -105,8 +134,8 @@ p {
 }
 
 .crawl-title {
-  margin-top: 12px;
-  margin-bottom: 44px;
+  margin-top: 50px;
+  margin-bottom: 10px;
   color: #090b0d;
   text-transform: uppercase;
   transform: perspective(560px) rotateX(24deg);
@@ -173,14 +202,14 @@ p {
 }
 
 .landing-buttons > button:nth-child(odd) {
-  background: #ffffff;
-  color: #0f1113;
+  --btn-bg: #ffffff;
+  --btn-fg: #0f1113;
 }
 
 .landing-buttons > button:nth-child(even) {
-  background: #0f1113;
-  color: #ffffff;
-  width: 27vw;
+  --btn-bg: #0f1113;
+  --btn-fg: #ffffff;
+  width: 18.9vw;
 }
 
 .secondary:hover {
@@ -753,7 +782,7 @@ p {
   }
 
   .landing-buttons button:nth-child(even) {
-    width: 27vw;
+    width: 18.9vw;
   }
 
   .tester-readout {

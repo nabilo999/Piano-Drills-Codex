@@ -1562,22 +1562,22 @@ function App() {
           <h1 className="crawl-title">Piano Drills</h1>
           <div className="landing-buttons">
             <button className="start-button" onClick={() => setShowGamePicker(true)}>
-              Start
+              <span className="landing-button-label">Start</span>
             </button>
             <button className="secondary" onClick={() => setShowLandingSettings(true)}>
-              Settings
+              <span className="landing-button-label">Settings</span>
             </button>
             <button className="secondary" onClick={() => setShowLandingProfile(true)}>
-              Profile
+              <span className="landing-button-label">Profile</span>
             </button>
             <button className="secondary" onClick={() => setShowLandingLeaderboard(true)}>
-              Leaderboard
+              <span className="landing-button-label">Leaderboard</span>
             </button>
             <button className="secondary" type="button">
-              Connect Piano
+              <span className="landing-button-label">Connect Piano</span>
             </button>
             <button className="secondary test-button" onClick={openPitchTester}>
-              Test
+              <span className="landing-button-label">Test Audio</span>
             </button>
           </div>
           {micStatus === 'error' && (
