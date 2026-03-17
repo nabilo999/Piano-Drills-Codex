@@ -54,6 +54,7 @@ select {
   min-height: 100vh;
   text-align: center;
   padding: 20px 25vh;
+  padding-bottom: calc(20px + 10vh);
   margin: 0;
   border: none;
   background-image: url('./assets/piano-banner.png');
@@ -373,6 +374,7 @@ p {
 }
 
 .modal {
+  position: relative;
   width: min(430px, 94vw);
   border-radius: 16px;
   border: 1px solid #d8dde4;
@@ -386,6 +388,18 @@ p {
 .landing-modal {
   width: min(360px, 90vw);
   min-height: 480px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: #8a9099;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .modal-divider {

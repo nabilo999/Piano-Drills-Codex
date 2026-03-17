@@ -811,6 +811,7 @@ function App() {
     stopGameLoop()
     stopAudio()
     stopPitchTesterLoop()
+    setShowLandingSettings(false)
     setTesterReading({
       label: '--',
       midiValue: null,
@@ -1576,9 +1577,6 @@ function App() {
             <button className="secondary" type="button">
               <span className="landing-button-label">Connect Piano</span>
             </button>
-            <button className="secondary test-button" onClick={openPitchTester}>
-              <span className="landing-button-label">Test Audio</span>
-            </button>
           </div>
           {micStatus === 'error' && (
             <p className="error">Microphone permission is required to play.</p>
@@ -1835,6 +1833,14 @@ function App() {
       {showLandingSettings && (
         <aside className="modal-backdrop" onClick={() => setShowLandingSettings(false)}>
           <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowLandingSettings(false)}
+            >
+              ×
+            </button>
             <h2>Settings</h2>
             <div className="modal-divider" />
             <label className="modal-field">
@@ -1870,6 +1876,9 @@ function App() {
                 </button>
               </div>
             </div>
+            <button className="secondary test-button" onClick={openPitchTester}>
+              <span className="landing-button-label">Test Audio</span>
+            </button>
           </div>
         </aside>
       )}
@@ -1877,6 +1886,14 @@ function App() {
       {showLandingProfile && (
         <aside className="modal-backdrop" onClick={() => setShowLandingProfile(false)}>
           <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowLandingProfile(false)}
+            >
+              ×
+            </button>
             <h2>Profile</h2>
             <div className="modal-divider" />
             <p className="modal-placeholder">To be implemented.</p>
@@ -1887,6 +1904,14 @@ function App() {
       {showLandingLeaderboard && (
         <aside className="modal-backdrop" onClick={() => setShowLandingLeaderboard(false)}>
           <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowLandingLeaderboard(false)}
+            >
+              ×
+            </button>
             <h2>Leaderboard</h2>
             <div className="modal-divider" />
             <p className="modal-placeholder">To be implemented.</p>
