@@ -388,6 +388,79 @@ p {
 .landing-modal {
   width: min(360px, 90vw);
   min-height: 480px;
+  gap: 10px;
+}
+
+.landing-modal h2 {
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.landing-modal .modal-divider {
+  display: none;
+}
+
+.landing-modal .modal-field span {
+  font-weight: 700;
+}
+
+.landing-modal input[type='range'] {
+  width: 100%;
+  accent-color: #0f1113;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+}
+
+.landing-modal input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #d8dde4;
+  border-radius: 999px;
+}
+
+.landing-modal input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #0f1113;
+  border: 2px solid #ffffff;
+  margin-top: -5px;
+  box-shadow: 0 2px 6px rgba(15, 17, 19, 0.25);
+}
+
+.landing-modal input[type='range']::-moz-range-track {
+  height: 6px;
+  background: #d8dde4;
+  border-radius: 999px;
+}
+
+.landing-modal input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #0f1113;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 17, 19, 0.25);
+}
+
+.modal-button {
+  border: 1px solid #0f1113;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: #ffffff;
+  color: #0f1113;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.landing-modal .modal-button {
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+.modal-button:hover {
+  filter: brightness(0.98);
 }
 
 .modal-close {
@@ -427,6 +500,7 @@ p {
   padding: 10px 12px;
   font-weight: 700;
   cursor: pointer;
+  border-radius: 10px;
 }
 
 .toggle-button.is-active {
@@ -544,6 +618,7 @@ p {
   padding: 18px;
   display: grid;
   gap: 14px;
+  position: relative;
 }
 
 .picker-modal h2 {

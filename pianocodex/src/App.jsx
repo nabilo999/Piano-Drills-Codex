@@ -1876,7 +1876,7 @@ function App() {
                 </button>
               </div>
             </div>
-            <button className="secondary test-button" onClick={openPitchTester}>
+            <button className="modal-button" onClick={openPitchTester}>
               <span className="landing-button-label">Test Audio</span>
             </button>
           </div>
@@ -1922,6 +1922,14 @@ function App() {
       {showGamePicker && (
         <aside className="picker-backdrop" onClick={() => setShowGamePicker(false)}>
           <div className="picker-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowGamePicker(false)}
+            >
+              ×
+            </button>
             <h2>Select A Game</h2>
             <div className="game-card-grid">
               <button
