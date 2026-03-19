@@ -1727,6 +1727,14 @@ function App() {
       {showSettings && (
         <aside className="modal-backdrop" onClick={() => setShowSettings(false)}>
           <div className="modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowSettings(false)}
+            >
+              ×
+            </button>
             <h2>Session Settings</h2>
 
             <label>
@@ -1788,9 +1796,6 @@ function App() {
               }}
             >
               Begin
-            </button>
-            <button className="secondary" onClick={() => setShowSettings(false)}>
-              Cancel
             </button>
           </div>
         </aside>
@@ -1876,9 +1881,12 @@ function App() {
                 </button>
               </div>
             </div>
-            <button className="modal-button" onClick={openPitchTester}>
-              <span className="landing-button-label">Test Audio</span>
-            </button>
+            <div className="modal-field">
+              <span>Test Audio</span>
+              <button className="modal-button" onClick={openPitchTester}>
+                <span className="landing-button-label">Test Audio</span>
+              </button>
+            </div>
           </div>
         </aside>
       )}

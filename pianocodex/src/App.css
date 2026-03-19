@@ -388,7 +388,7 @@ p {
 .landing-modal {
   width: min(360px, 90vw);
   min-height: 480px;
-  gap: 10px;
+  gap: 5px;
 }
 
 .landing-modal h2 {
@@ -455,7 +455,7 @@ p {
 }
 
 .landing-modal .modal-button {
-  margin-top: 8px;
+  margin-top: 0;
   font-size: 0.95rem;
 }
 
@@ -919,4 +919,7 @@ p {
   .timer-pill {
     font-size: 1.5rem;
   }
+}
+.landing-modal .modal-field {
+  gap: 5px;
 }
