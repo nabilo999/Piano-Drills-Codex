@@ -250,6 +250,7 @@ function App() {
   const [showLandingLeaderboard, setShowLandingLeaderboard] = useState(false)
   const [landingMasterVolume, setLandingMasterVolume] = useState(80)
   const [landingInputType, setLandingInputType] = useState('audio')
+  const [isLoading, setIsLoading] = useState(false)
   const [settings, setSettings] = useState({
     readSpeed: 3,
     level: 'beginner',
@@ -1407,6 +1408,7 @@ function App() {
   }
 
   const startRun = async () => {
+    setIsLoading(true)
     ensureAudioUnlocked()
     stopGameLoop()
     stopPitchTesterLoop()
@@ -1460,10 +1462,13 @@ function App() {
       setMicStatus('error')
       setScreen('landing')
       setShowSettings(false)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const startEarRun = async () => {
+    setIsLoading(true)
     ensureAudioUnlocked()
     stopGameLoop()
     stopPitchTesterLoop()
@@ -1527,6 +1532,8 @@ function App() {
       setMicStatus('error')
       setScreen('landing')
       setShowGamePicker(false)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -1984,6 +1991,14 @@ function App() {
             </div>
           </div>
         </aside>
+      )}
+
+      {isLoading && (
+        <div className="loading-backdrop" aria-busy="true" aria-live="polite">
+          <div className="loading-card" role="status" aria-label="Loading">
+            <div className="loading-spinner" />
+          </div>
+        </div>
       )}
     </div>
   )
