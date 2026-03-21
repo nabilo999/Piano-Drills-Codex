@@ -4,6 +4,8 @@ import './App.css'
 import pianoImage from './assets/piano.png'
 import arcadeCardImage from './assets/arcade_background.PNG'
 import playItByEarCardImage from './assets/play_it_by_ear_card.png'
+import leaderboardArcadeIcon from './assets/IC_leaderboard_arcade.png'
+import leaderboardPibeIcon from './assets/IC_leaderboard_PIBE.png'
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -78,6 +80,20 @@ const TESTER_NOTE_RANGE = Array.from({ length: 13 }, (_, index) => 60 + index)
 const EAR_FEEDBACK_DELAY_MS = 900
 const EAR_CAPTURE_WINDOW_MS = 260
 const EAR_CAPTURE_MIN_SAMPLES = 3
+const LEADERBOARD_ENTRIES = [
+  {
+    id: 1,
+    name: 'George Smith',
+    score: 540,
+    streak: 12,
+  },
+  {
+    id: 2,
+    name: 'Ava Reynolds',
+    score: 497,
+    streak: 9,
+  },
+]
 
 function midiToNoteName(midi) {
   const pitchClass = midi % 12
@@ -251,6 +267,7 @@ function App() {
   const [landingMasterVolume, setLandingMasterVolume] = useState(80)
   const [landingInputType, setLandingInputType] = useState('audio')
   const [isLoading, setIsLoading] = useState(false)
+  const [leaderboardGame, setLeaderboardGame] = useState('arcade')
   const [settings, setSettings] = useState({
     readSpeed: 3,
     level: 'beginner',
@@ -1918,7 +1935,7 @@ function App() {
 
       {showLandingLeaderboard && (
         <aside className="modal-backdrop" onClick={() => setShowLandingLeaderboard(false)}>
-          <div className="modal landing-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="modal leaderboard-modal" onClick={(event) => event.stopPropagation()}>
             <button
               className="modal-close"
               type="button"
@@ -1927,9 +1944,44 @@ function App() {
             >
               ×
             </button>
-            <h2>Leaderboard</h2>
-            <div className="modal-divider" />
-            <p className="modal-placeholder">To be implemented.</p>
+            <header className="leaderboard-header">
+              <h2>Leaderboard</h2>
+              <div className="leaderboard-divider" />
+              <div className="leaderboard-filter">
+                <select
+                  className="leaderboard-select"
+                  value={leaderboardGame}
+                  onChange={(event) => setLeaderboardGame(event.target.value)}
+                >
+                  <option value="arcade">Piano Arcade</option>
+                  <option value="ear">Play It By Ear</option>
+                </select>
+              </div>
+            </header>
+            <div className="leaderboard-list" role="list">
+              {LEADERBOARD_ENTRIES.map((entry) => (
+                <article key={entry.id} className="leaderboard-entry" role="listitem">
+                  <div className="leaderboard-avatar" aria-hidden="true">
+                    <div className="leaderboard-avatar-mark" />
+                  </div>
+                  <div className="leaderboard-name">{entry.name}</div>
+                  <div className="leaderboard-stats">
+                    <div className="leaderboard-stat">
+                      <span className="leaderboard-stat-icon">
+                        <img src={leaderboardArcadeIcon} alt="" aria-hidden="true" />
+                      </span>
+                      <span className="leaderboard-stat-value">{entry.score}</span>
+                    </div>
+                    <div className="leaderboard-stat">
+                      <span className="leaderboard-stat-icon">
+                        <img src={leaderboardPibeIcon} alt="" aria-hidden="true" />
+                      </span>
+                      <span className="leaderboard-stat-value">{entry.streak}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </aside>
       )}

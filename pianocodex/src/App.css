@@ -1,4 +1,6 @@
-﻿:root {
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
   color: #101214;
   background: #f6f7f9;
@@ -961,4 +963,137 @@ p {
 }
 .landing-modal .modal-field {
   gap: 5px;
+}
+
+.leaderboard-modal {
+  width: min(820px, 96vw);
+  gap: 18px;
+  padding: 24px;
+}
+
+.leaderboard-header h2 {
+  text-align: center;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.leaderboard-divider {
+  height: 2px;
+  width: 100%;
+  background: #0f1113;
+  margin-top: 10px;
+}
+
+.leaderboard-filter {
+  width: 50%;
+  margin: 14px auto 0;
+}
+
+.leaderboard-select {
+  width: 100%;
+  border: 2px solid #0f1113;
+  border-radius: 0;
+  padding: 10px 12px;
+  background: #ffffff;
+  font-family: 'Press Start 2P', 'VT323', 'Courier New', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.leaderboard-list {
+  display: grid;
+  gap: 16px;
+  max-height: min(560px, 58vh);
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.leaderboard-entry {
+  width: min(600px, 100%);
+  height: 180px;
+  margin: 0 auto;
+  border: 8px solid #000000;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: 120px 1fr 170px;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  font-family: 'Press Start 2P', 'VT323', 'Courier New', monospace;
+  color: #000000;
+  box-sizing: border-box;
+}
+
+.leaderboard-avatar {
+  width: 120px;
+  height: 120px;
+  border: 8px solid #000000;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  image-rendering: pixelated;
+}
+
+.leaderboard-avatar-mark {
+  position: relative;
+  width: 70px;
+  height: 54px;
+}
+
+.leaderboard-avatar-mark::before,
+.leaderboard-avatar-mark::after {
+  content: '';
+  position: absolute;
+  width: 32px;
+  height: 44px;
+  border: 6px solid #78cfff;
+  border-top: none;
+  bottom: 0;
+  box-sizing: border-box;
+}
+
+.leaderboard-avatar-mark::before {
+  left: 0;
+}
+
+.leaderboard-avatar-mark::after {
+  right: 0;
+}
+
+.leaderboard-name {
+  font-size: clamp(1.2rem, 2.6vw, 2.1rem);
+  line-height: 1.2;
+}
+
+.leaderboard-stats {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.leaderboard-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leaderboard-stat-icon {
+  width: 36px;
+  height: 36px;
+  background: #000000;
+  display: grid;
+  place-items: center;
+  image-rendering: pixelated;
+}
+
+.leaderboard-stat-icon img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.leaderboard-stat-value {
+  font-size: 1.1rem;
 }
