@@ -31,12 +31,22 @@ const CONDUCTOR_SPRITE_LOADERS = import.meta.glob('./assets/conductor/*.png', {
 const REVOLVER_SPRITE_LOADERS = import.meta.glob('./assets/revolver/*.png', {
   import: 'default',
 })
+const PROFILE_PICTURE_LOADERS = import.meta.glob('./assets/profile_pictures/*.png', {
+  eager: true,
+  import: 'default',
+})
 const EAR_BACKGROUND_LOADERS = import.meta.glob('./assets/background.png', {
   import: 'default',
 })
 const SFX_LOADERS = import.meta.glob('./assets/sfx/*.mp3', {
   import: 'default',
 })
+const PROFILE_PICTURES = Object.values(PROFILE_PICTURE_LOADERS)
+const SHUFFLED_PROFILE_PICTURES = [...PROFILE_PICTURES].sort(() => Math.random() - 0.5)
+const pickProfilePicture = (offset) => {
+  if (SHUFFLED_PROFILE_PICTURES.length === 0) return null
+  return SHUFFLED_PROFILE_PICTURES[offset % SHUFFLED_PROFILE_PICTURES.length]
+}
 const EMPTY_SFX_BANK = {
   correct: null,
   wrong: null,
@@ -86,12 +96,14 @@ const LEADERBOARD_ENTRIES = [
     name: 'George Smith',
     score: 540,
     streak: 12,
+    profileSrc: pickProfilePicture(0),
   },
   {
     id: 2,
     name: 'Ava Reynolds',
     score: 497,
     streak: 9,
+    profileSrc: pickProfilePicture(1),
   },
 ]
 
@@ -1961,8 +1973,18 @@ function App() {
             <div className="leaderboard-list" role="list">
               {LEADERBOARD_ENTRIES.map((entry) => (
                 <article key={entry.id} className="leaderboard-entry" role="listitem">
-                  <div className="leaderboard-avatar" aria-hidden="true">
-                    <div className="leaderboard-avatar-mark" />
+                  <div className="leaderboard-avatar">
+                    {entry.profileSrc ? (
+                      <img
+                        className="leaderboard-avatar-image"
+                        src={entry.profileSrc}
+                        alt={`Profile of ${entry.name}`}
+                      />
+                    ) : (
+                      <span className="leaderboard-avatar-fallback" aria-hidden="true">
+                        ?
+                      </span>
+                    )}
                   </div>
                   <div className="leaderboard-name">{entry.name}</div>
                   <div className="leaderboard-stats">

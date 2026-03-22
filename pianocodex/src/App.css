@@ -1035,30 +1035,17 @@ p {
   image-rendering: pixelated;
 }
 
-.leaderboard-avatar-mark {
-  position: relative;
-  width: 70px;
-  height: 54px;
+.leaderboard-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
 }
 
-.leaderboard-avatar-mark::before,
-.leaderboard-avatar-mark::after {
-  content: '';
-  position: absolute;
-  width: 32px;
-  height: 44px;
-  border: 6px solid #78cfff;
-  border-top: none;
-  bottom: 0;
-  box-sizing: border-box;
-}
-
-.leaderboard-avatar-mark::before {
-  left: 0;
-}
-
-.leaderboard-avatar-mark::after {
-  right: 0;
+.leaderboard-avatar-fallback {
+  font-size: 2rem;
+  line-height: 1;
+  color: #000000;
 }
 
 .leaderboard-name {
