@@ -1068,17 +1068,22 @@ p {
 .leaderboard-stat-icon {
   width: 36px;
   height: 36px;
-  background: #000000;
   display: grid;
   place-items: center;
-  image-rendering: pixelated;
+  overflow: hidden;
 }
 
 .leaderboard-stat-icon img {
-  width: 70%;
-  height: 70%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  image-rendering: pixelated;
+  image-rendering: auto;
+  display: block;
+}
+
+.leaderboard-stat-icon.is-pibe {
+  width: 43px;
+  height: 43px;
 }
 
 .leaderboard-stat-value {
