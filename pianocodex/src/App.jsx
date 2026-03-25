@@ -838,6 +838,7 @@ function App() {
   }
 
   const openPitchTester = async () => {
+    setIsLoading(true)
     stopGameLoop()
     stopAudio()
     stopPitchTesterLoop()
@@ -856,6 +857,8 @@ function App() {
     } catch {
       setMicStatus('error')
       setShowPitchTester(false)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -1840,6 +1843,14 @@ function App() {
       {showPitchTester && (
         <aside className="modal-backdrop" onClick={closePitchTester}>
           <div className="modal tester-modal" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={closePitchTester}
+            >
+              ×
+            </button>
             <h2>Pitch Test</h2>
             <p className="tester-copy">Play a note and watch where the detector places it.</p>
             <div className="tester-readout">
@@ -1864,9 +1875,6 @@ function App() {
                 ))}
               </div>
             </div>
-            <button className="secondary" onClick={closePitchTester}>
-              Close
-            </button>
           </div>
         </aside>
       )}
