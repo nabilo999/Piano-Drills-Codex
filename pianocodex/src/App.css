@@ -1056,18 +1056,19 @@ p {
 .leaderboard-stats {
   display: grid;
   gap: 10px;
-  justify-items: end;
+  justify-items: start;
 }
 
 .leaderboard-stat {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  justify-content: flex-start;
 }
 
 .leaderboard-stat-icon {
-  width: 36px;
-  height: 36px;
+  width: 54px;
+  height: 54px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -1081,10 +1082,6 @@ p {
   display: block;
 }
 
-.leaderboard-stat-icon.is-pibe {
-  width: 43px;
-  height: 43px;
-}
 
 .leaderboard-stat-value {
   font-size: 1.1rem;

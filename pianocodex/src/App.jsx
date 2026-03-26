@@ -2003,7 +2003,7 @@ function App() {
                       <span className="leaderboard-stat-value">{entry.score}</span>
                     </div>
                     <div className="leaderboard-stat">
-                      <span className="leaderboard-stat-icon is-pibe">
+                      <span className="leaderboard-stat-icon">
                         <img src={leaderboardPibeIcon} alt="" aria-hidden="true" />
                       </span>
                       <span className="leaderboard-stat-value">{entry.streak}</span>
