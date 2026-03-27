@@ -271,16 +271,18 @@ p {
 .staff {
   position: absolute;
   inset: 0;
-  background:
+  --staff-step: 64px;
+  --staff-line: rgba(248, 252, 255, 0.38);
+  background-image:
     repeating-linear-gradient(
       to bottom,
       transparent 0,
-      transparent 10%,
-      rgba(248, 252, 255, 0.38) 10.3%,
-      transparent 10.6%
+      transparent calc(var(--staff-step) - 2px),
+      var(--staff-line) calc(var(--staff-step) - 2px),
+      var(--staff-line) var(--staff-step)
     );
-  background-size: 100% 120%;
-  animation: staffDrift 2s linear infinite;
+  background-size: 100% var(--staff-step);
+  animation: staffDrift 0.8s linear infinite;
 }
 
 @keyframes staffDrift {
@@ -288,7 +290,7 @@ p {
     background-position: 0 0;
   }
   to {
-    background-position: 0 -120%;
+    background-position: 0 var(--staff-step);
   }
 }
 
