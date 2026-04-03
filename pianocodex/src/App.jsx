@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy } from 'react'
 import * as Tone from 'tone'
 import './App.css'
 import pianoImage from './assets/piano.png'
@@ -6,6 +7,9 @@ import arcadeCardImage from './assets/arcade_background.PNG'
 import playItByEarCardImage from './assets/play_it_by_ear_card.png'
 import leaderboardArcadeIcon from './assets/IC_leaderboard_arcade.png'
 import leaderboardPibeIcon from './assets/IC_leaderboard_PIBE.png'
+import tempoRunCardImage from './assets/tempo_run_assets/tempo_run_card.png'
+
+const TempoRun = lazy(() => import('./TempoRun.jsx'))
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -1592,7 +1596,10 @@ function App() {
   return (
     <div
       className={`app-shell ${
-        screen === 'game' || screen === 'earGame' || screen === 'earGameOver'
+        screen === 'game' ||
+        screen === 'earGame' ||
+        screen === 'earGameOver' ||
+        screen === 'tempoRun'
           ? 'game-mode'
           : 'menu-mode'
       }`}
@@ -1761,6 +1768,20 @@ function App() {
             </button>
           </div>
         </main>
+      )}
+
+      {screen === 'tempoRun' && (
+        <Suspense
+          fallback={
+            <div className="loading-backdrop" aria-busy="true" aria-live="polite">
+              <div className="loading-card" role="status" aria-label="Loading">
+                <div className="loading-spinner" />
+              </div>
+            </div>
+          }
+        >
+          <TempoRun onExit={() => setScreen('landing')} />
+        </Suspense>
       )}
 
       {showSettings && (
@@ -2066,9 +2087,23 @@ function App() {
                 <span>Play It By Ear</span>
               </button>
 
-              <button className="game-card" type="button" disabled>
-                <div className="game-card-art" />
-                <span>Coming Soon</span>
+              <button
+                className="game-card is-active"
+                onClick={() => {
+                  setShowGamePicker(false)
+                  setScreen('tempoRun')
+                }}
+              >
+                <div
+                  className="game-card-art"
+                  style={{
+                    backgroundImage: `url(${tempoRunCardImage})`,
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
+                <span>Tempo Run</span>
               </button>
             </div>
           </div>
