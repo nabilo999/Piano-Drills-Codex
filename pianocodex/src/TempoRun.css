@@ -8,7 +8,7 @@
 }
 
 .tempo-run-stage-card {
-  width: min(1180px, 94vw);
+  width: min(1062px, 84.6vw);
   padding: 0;
 }
 
@@ -32,11 +32,12 @@
   position: absolute;
   top: 18px;
   left: 22px;
+  right: 22px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 22px;
   font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
-  font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
   color: #f8fbff;
   text-shadow:
     0 0 10px rgba(5, 12, 18, 0.55),
@@ -47,17 +48,20 @@
 .tempo-run-score,
 .tempo-run-combo {
   display: block;
+  font-size: 1.08em;
 }
 
 .tempo-run-lives {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  margin-left: auto;
+  order: 3;
 }
 
 .tempo-run-heart {
   display: inline-block;
-  font-size: 1.08em;
+  font-size: 1.24em;
 }
 
 .tempo-run-heart.is-alive {
@@ -164,7 +168,7 @@
   }
 
   .tempo-run-stage-card {
-    width: min(96vw, 720px);
+    width: min(86.4vw, 648px);
   }
 
   .tempo-run-stage-wrap {
@@ -174,8 +178,9 @@
   .tempo-run-hud {
     top: 14px;
     left: 14px;
-    gap: 12px;
-    font-size: 0.8rem;
+    right: 14px;
+    gap: 14px;
+    font-size: 0.92rem;
   }
 
   .tempo-run-popup-backdrop {
