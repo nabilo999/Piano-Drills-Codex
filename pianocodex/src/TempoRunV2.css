@@ -1,0 +1,790 @@
+.tempo-run-v2-shell {
+  min-height: calc(100vh - 24px);
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 228, 170, 0.8) 0%, transparent 30%),
+    linear-gradient(180deg, #fff8ea 0%, #fff2cf 100%);
+  color: #182432;
+}
+
+.tempo-run-v2-stage-card {
+  width: min(1220px, 95vw);
+}
+
+.tempo-run-v2-stage-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(24, 36, 50, 0.08);
+  background: linear-gradient(180deg, #b9eaff 0%, #fff5c7 100%);
+  box-shadow:
+    0 24px 48px rgba(30, 39, 47, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.tempo-run-v2-topbar {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tempo-run-v2-stat {
+  min-width: 118px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(24, 41, 57, 0.08);
+  box-shadow: 0 10px 20px rgba(19, 28, 35, 0.08);
+  text-align: center;
+}
+
+.tempo-run-v2-stat-label,
+.tempo-run-v2-panel-label,
+.tempo-run-v2-popup-kicker,
+.tempo-run-v2-hint {
+  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tempo-run-v2-stat-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.58rem;
+  color: #5b6d80;
+}
+
+.tempo-run-v2-stat strong {
+  font-size: 1.02rem;
+  color: #152230;
+}
+
+.tempo-run-v2-progress-panel,
+.tempo-run-v2-queue-panel {
+  position: absolute;
+  z-index: 7;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(24, 41, 57, 0.1);
+  box-shadow: 0 14px 24px rgba(24, 36, 50, 0.09);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.tempo-run-v2-progress-panel {
+  left: 18px;
+  top: 108px;
+  bottom: 100px;
+  width: 82px;
+  border-radius: 22px;
+  padding: 16px 12px;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 14px;
+}
+
+.tempo-run-v2-queue-panel {
+  right: 18px;
+  top: 110px;
+  width: 180px;
+  border-radius: 22px;
+  padding: 16px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.tempo-run-v2-panel-label {
+  font-size: 0.56rem;
+  color: #627488;
+}
+
+.tempo-run-v2-progress-rail {
+  position: relative;
+  width: 16px;
+  flex: 1;
+  align-self: stretch;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(105, 153, 211, 0.18), rgba(39, 79, 122, 0.08));
+  overflow: hidden;
+}
+
+.tempo-run-v2-progress-fill {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #7ef1c8 0%, #26b7a8 100%);
+}
+
+.tempo-run-v2-progress-marker {
+  position: absolute;
+  left: 50%;
+  width: 26px;
+  height: 14px;
+  transform: translate(-50%, 50%);
+  border-radius: 999px;
+  background: #ff9352;
+  border: 2px solid #ffffff;
+  box-shadow: 0 6px 12px rgba(28, 41, 50, 0.12);
+}
+
+.tempo-run-v2-progress-endcaps {
+  display: grid;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #506173;
+  text-align: center;
+}
+
+.tempo-run-v2-queue-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tempo-run-v2-queue-item {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: rgba(158, 211, 255, 0.18);
+  border: 1px solid transparent;
+}
+
+.tempo-run-v2-queue-item.is-current {
+  border-color: rgba(255, 154, 82, 0.58);
+  background: rgba(255, 227, 159, 0.32);
+}
+
+.tempo-run-v2-queue-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.tempo-run-v2-queue-copy strong {
+  font-size: 0.84rem;
+  color: #152230;
+}
+
+.tempo-run-v2-queue-copy span {
+  font-size: 0.72rem;
+  color: #68798a;
+}
+
+.tempo-run-v2-track-viewport {
+  position: absolute;
+  inset: 92px 212px 94px 118px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #bfeaff 0%, #fff0a9 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -12px 20px rgba(53, 83, 110, 0.06);
+  cursor: pointer;
+}
+
+.tempo-run-v2-track-backdrop,
+.tempo-run-v2-sky-glow,
+.tempo-run-v2-grid-line,
+.tempo-run-v2-lane-shadow,
+.tempo-run-v2-ground,
+.tempo-run-v2-ground-edge,
+.tempo-run-v2-feedback,
+.tempo-run-v2-runner,
+.tempo-run-v2-hurdle {
+  position: absolute;
+}
+
+.tempo-run-v2-track-backdrop {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, #b8e9ff 0%, #8ad8ff 44%, #ffe497 100%);
+  background-size: cover;
+  background-repeat: repeat-x;
+  opacity: 0.95;
+}
+
+.tempo-run-v2-sky-glow {
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.65) 0%, transparent 22%),
+    radial-gradient(circle at 72% 16%, rgba(255, 243, 190, 0.75) 0%, transparent 26%);
+  pointer-events: none;
+}
+
+.tempo-run-v2-grid-line {
+  top: 0;
+  bottom: 66px;
+  width: 1px;
+  background: rgba(33, 76, 115, 0.12);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.tempo-run-v2-grid-line.is-beat {
+  background: rgba(21, 58, 91, 0.2);
+}
+
+.tempo-run-v2-grid-line.is-bar {
+  width: 2px;
+  background: rgba(24, 57, 88, 0.34);
+}
+
+.tempo-run-v2-lane-shadow {
+  left: 6%;
+  right: 6%;
+  bottom: 44px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(42, 62, 80, 0.18);
+  filter: blur(10px);
+}
+
+.tempo-run-v2-ground {
+  inset: auto 0 0;
+  height: 64px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0 4px, transparent 4px),
+    linear-gradient(180deg, #2f5744 0%, #1e3d31 100%);
+}
+
+.tempo-run-v2-ground-edge {
+  left: 0;
+  right: 0;
+  bottom: 64px;
+  height: 8px;
+  background: linear-gradient(90deg, #ffe085 0%, #ffb34f 50%, #ffe085 100%);
+}
+
+.tempo-run-v2-feedback {
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.tempo-run-v2-feedback-art {
+  width: min(220px, 32vw);
+  max-width: 220px;
+  image-rendering: pixelated;
+}
+
+.tempo-run-v2-feedback-badge {
+  min-width: 110px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--feedback-color, #fff29c);
+  color: #162230;
+  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.tempo-run-v2-feedback-copy {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  color: #13212f;
+}
+
+.tempo-run-v2-feedback-copy strong {
+  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.tempo-run-v2-feedback-copy span,
+.tempo-run-v2-combo-up-copy {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.tempo-run-v2-combo-up-art {
+  width: 124px;
+  image-rendering: pixelated;
+}
+
+.tempo-run-v2-combo-up-copy {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #256c61;
+}
+
+.tempo-run-v2-hurdle {
+  bottom: 58px;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  transition: opacity 120ms linear;
+}
+
+.tempo-run-v2-hurdle.is-cleared {
+  opacity: 0.25;
+}
+
+.tempo-run-v2-hurdle.is-missed {
+  opacity: 0.55;
+  filter: grayscale(0.2) saturate(0.72);
+}
+
+.tempo-run-v2-hurdle-marker {
+  color: var(--hurdle-accent, #ff9b52);
+}
+
+.tempo-run-v2-hurdle-asset {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.tempo-run-v2-hurdle-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px 12px 5px 5px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, var(--hurdle-accent, #ff9b52), #1d2934);
+  box-shadow: 0 10px 0 rgba(16, 28, 39, 0.18);
+}
+
+.tempo-run-v2-hurdle-fallback.is-eighth {
+  clip-path: polygon(0 14%, 100% 0, 100% 100%, 0 100%);
+}
+
+.tempo-run-v2-hurdle-fallback.is-sixteenth {
+  clip-path: polygon(0 24%, 100% 0, 100% 100%, 0 100%);
+}
+
+.tempo-run-v2-hurdle-fallback.is-half {
+  border-radius: 16px 16px 5px 5px;
+}
+
+.tempo-run-v2-hurdle-fallback.is-whole {
+  border-radius: 999px 999px 10px 10px;
+}
+
+.tempo-run-v2-runner {
+  bottom: 58px;
+  z-index: 5;
+  width: 118px;
+  height: 118px;
+  pointer-events: none;
+}
+
+.tempo-run-v2-runner-sprite,
+.tempo-run-v2-runner-afterimage,
+.tempo-run-v2-runner-fallback {
+  position: absolute;
+  inset: 0;
+}
+
+.tempo-run-v2-runner-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.tempo-run-v2-runner-afterimage {
+  opacity: 0.16;
+  filter: blur(6px);
+}
+
+.tempo-run-v2-runner-afterimage.is-far {
+  transform: translateX(-18px) scale(0.92);
+  opacity: 0.09;
+}
+
+.tempo-run-v2-runner-afterimage.is-near {
+  transform: translateX(-10px) scale(0.96);
+}
+
+.tempo-run-v2-runner-fallback {
+  width: 74px;
+  height: 90px;
+  margin: auto;
+  image-rendering: pixelated;
+}
+
+.tempo-run-v2-runner-head,
+.tempo-run-v2-runner-body,
+.tempo-run-v2-runner-arm,
+.tempo-run-v2-runner-leg {
+  position: absolute;
+  display: block;
+}
+
+.tempo-run-v2-runner-head {
+  left: 31px;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+  background: #203243;
+  box-shadow: 2px 2px 0 #ffd08f;
+}
+
+.tempo-run-v2-runner-body {
+  left: 26px;
+  top: 28px;
+  width: 28px;
+  height: 28px;
+  background: #ff9448;
+  box-shadow: 0 18px 0 #203243;
+}
+
+.tempo-run-v2-runner-arm {
+  left: 16px;
+  top: 38px;
+  width: 18px;
+  height: 10px;
+  background: #203243;
+  transform: rotate(-24deg);
+  transform-origin: right center;
+}
+
+.tempo-run-v2-runner-leg {
+  width: 12px;
+  height: 28px;
+  bottom: 8px;
+  background: #203243;
+}
+
+.tempo-run-v2-runner-leg.is-back {
+  left: 22px;
+  transform: rotate(22deg);
+}
+
+.tempo-run-v2-runner-leg.is-front {
+  right: 18px;
+  transform: rotate(-12deg);
+  background: #ffe58d;
+}
+
+.tempo-run-v2-rhythm-glyph {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  min-width: 24px;
+  height: 22px;
+}
+
+.tempo-run-v2-rhythm-glyph.is-compact {
+  height: 18px;
+  gap: 3px;
+}
+
+.tempo-run-v2-rhythm-bar,
+.tempo-run-v2-rest-bar {
+  display: inline-block;
+}
+
+.tempo-run-v2-rhythm-bar {
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.tempo-run-v2-rhythm-glyph.is-half .tempo-run-v2-rhythm-bar {
+  width: 6px;
+  height: 22px;
+}
+
+.tempo-run-v2-rhythm-glyph.is-whole .tempo-run-v2-rhythm-bar {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.tempo-run-v2-rhythm-glyph.is-sixteenth .tempo-run-v2-rhythm-bar {
+  width: 3px;
+}
+
+.tempo-run-v2-rhythm-glyph.is-compact .tempo-run-v2-rhythm-bar {
+  height: 14px;
+}
+
+.tempo-run-v2-rest-bar {
+  width: 18px;
+  height: 4px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow:
+    6px 6px 0 currentColor,
+    -6px 6px 0 currentColor;
+}
+
+.tempo-run-v2-count-strip {
+  position: absolute;
+  left: 118px;
+  right: 212px;
+  bottom: 24px;
+  height: 54px;
+  z-index: 7;
+}
+
+.tempo-run-v2-count-slot {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.tempo-run-v2-count-tick {
+  width: 1px;
+  height: 16px;
+  background: rgba(23, 55, 83, 0.28);
+}
+
+.tempo-run-v2-count-slot.is-beat .tempo-run-v2-count-tick {
+  width: 2px;
+  background: rgba(23, 55, 83, 0.42);
+}
+
+.tempo-run-v2-count-label {
+  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
+  font-size: 0.62rem;
+  color: #4f6277;
+}
+
+.tempo-run-v2-hint {
+  position: absolute;
+  left: 118px;
+  bottom: 82px;
+  z-index: 7;
+  font-size: 0.56rem;
+  color: rgba(22, 36, 48, 0.72);
+}
+
+.tempo-run-v2-jump-button,
+.tempo-run-v2-button {
+  border: none;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.tempo-run-v2-jump-button {
+  position: absolute;
+  right: 22px;
+  bottom: 20px;
+  z-index: 8;
+  min-width: 120px;
+  padding: 14px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffcf5b 0%, #ff9150 100%);
+  color: #172330;
+  box-shadow: 0 14px 26px rgba(255, 150, 82, 0.24);
+}
+
+.tempo-run-v2-jump-button:active {
+  transform: translateY(1px);
+}
+
+.tempo-run-v2-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(17, 29, 40, 0.36);
+}
+
+.tempo-run-v2-popup {
+  width: min(420px, 88vw);
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(24, 41, 57, 0.1);
+  box-shadow: 0 24px 40px rgba(16, 26, 34, 0.2);
+  text-align: center;
+}
+
+.tempo-run-v2-popup-kicker {
+  margin: 0 0 10px;
+  font-size: 0.58rem;
+  color: #598199;
+}
+
+.tempo-run-v2-popup h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: #182432;
+}
+
+.tempo-run-v2-popup p {
+  margin: 0;
+  color: #5b6f81;
+  line-height: 1.65;
+}
+
+.tempo-run-v2-popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.tempo-run-v2-button {
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #ffd266 0%, #ff9458 100%);
+  color: #172330;
+  box-shadow: 0 12px 22px rgba(255, 150, 82, 0.18);
+}
+
+.tempo-run-v2-button.is-secondary {
+  background: #203243;
+  color: #f5fbff;
+  box-shadow: none;
+}
+
+@media (max-width: 1100px) {
+  .tempo-run-v2-track-viewport {
+    inset: 100px 178px 96px 104px;
+  }
+
+  .tempo-run-v2-count-strip {
+    left: 104px;
+    right: 178px;
+  }
+
+  .tempo-run-v2-hint {
+    left: 104px;
+  }
+
+  .tempo-run-v2-queue-panel {
+    width: 156px;
+  }
+}
+
+@media (max-width: 860px) {
+  .tempo-run-v2-shell {
+    padding: 14px;
+  }
+
+  .tempo-run-v2-stage-wrap {
+    aspect-ratio: 10 / 14;
+  }
+
+  .tempo-run-v2-topbar {
+    top: 14px;
+    width: calc(100% - 20px);
+  }
+
+  .tempo-run-v2-stat {
+    min-width: 92px;
+    padding: 8px 10px;
+  }
+
+  .tempo-run-v2-progress-panel {
+    left: 14px;
+    top: 108px;
+    bottom: 118px;
+    width: 64px;
+    padding: 12px 10px;
+  }
+
+  .tempo-run-v2-queue-panel {
+    right: 14px;
+    top: 108px;
+    width: 124px;
+    padding: 12px 10px;
+  }
+
+  .tempo-run-v2-track-viewport {
+    inset: 162px 18px 114px 18px;
+  }
+
+  .tempo-run-v2-count-strip {
+    left: 18px;
+    right: 18px;
+    bottom: 64px;
+  }
+
+  .tempo-run-v2-hint {
+    left: 18px;
+    right: 148px;
+    bottom: 28px;
+    font-size: 0.52rem;
+  }
+
+  .tempo-run-v2-jump-button {
+    right: 14px;
+    bottom: 16px;
+    min-width: 108px;
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .tempo-run-v2-stat {
+    min-width: 82px;
+  }
+
+  .tempo-run-v2-track-viewport {
+    inset: 172px 12px 118px 12px;
+  }
+
+  .tempo-run-v2-progress-panel,
+  .tempo-run-v2-queue-panel {
+    border-radius: 18px;
+  }
+
+  .tempo-run-v2-progress-panel {
+    width: 56px;
+  }
+
+  .tempo-run-v2-queue-panel {
+    width: 108px;
+  }
+
+  .tempo-run-v2-queue-item {
+    grid-template-columns: 40px 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .tempo-run-v2-queue-copy strong {
+    font-size: 0.74rem;
+  }
+
+  .tempo-run-v2-queue-copy span {
+    font-size: 0.64rem;
+  }
+
+  .tempo-run-v2-runner {
+    width: 102px;
+    height: 102px;
+  }
+
+  .tempo-run-v2-feedback-art {
+    width: min(178px, 44vw);
+  }
+}

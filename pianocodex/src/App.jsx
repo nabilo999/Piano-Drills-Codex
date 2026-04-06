@@ -10,6 +10,14 @@ import leaderboardPibeIcon from './assets/IC_leaderboard_PIBE.png'
 import tempoRunCardImage from './assets/tempo_run_assets/tempo_run_card.png'
 
 const TempoRun = lazy(() => import('./TempoRun.jsx'))
+const TempoRunV2 = lazy(() => import('./TempoRunV2.jsx'))
+const TEMPO_RUN_V2_CARD_IMAGE =
+  Object.values(
+    import.meta.glob('./assets/tempo_run_assets_v2/tempo_run_card.png', {
+      eager: true,
+      import: 'default',
+    }),
+  )[0] ?? null
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -1599,7 +1607,8 @@ function App() {
         screen === 'game' ||
         screen === 'earGame' ||
         screen === 'earGameOver' ||
-        screen === 'tempoRun'
+        screen === 'tempoRun' ||
+        screen === 'tempoRunV2'
           ? 'game-mode'
           : 'menu-mode'
       }`}
@@ -1781,6 +1790,20 @@ function App() {
           }
         >
           <TempoRun onExit={() => setScreen('landing')} />
+        </Suspense>
+      )}
+
+      {screen === 'tempoRunV2' && (
+        <Suspense
+          fallback={
+            <div className="loading-backdrop" aria-busy="true" aria-live="polite">
+              <div className="loading-card" role="status" aria-label="Loading">
+                <div className="loading-spinner" />
+              </div>
+            </div>
+          }
+        >
+          <TempoRunV2 onExit={() => setScreen('landing')} />
         </Suspense>
       )}
 
@@ -2104,6 +2127,41 @@ function App() {
                   }}
                 />
                 <span>Tempo Run</span>
+              </button>
+
+              <button
+                className="game-card is-active"
+                onClick={() => {
+                  setShowGamePicker(false)
+                  setScreen('tempoRunV2')
+                }}
+              >
+                <div
+                  className="game-card-art tempo-run-v2-card-art"
+                  style={
+                    TEMPO_RUN_V2_CARD_IMAGE
+                      ? {
+                          backgroundImage: `url(${TEMPO_RUN_V2_CARD_IMAGE})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat',
+                        }
+                      : undefined
+                  }
+                >
+                  {!TEMPO_RUN_V2_CARD_IMAGE && (
+                    <>
+                      <div className="tempo-run-v2-card-runner" aria-hidden="true" />
+                      <div className="tempo-run-v2-card-hurdle" aria-hidden="true" />
+                      <div className="tempo-run-v2-card-queue" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <span>Tempo Run Side Scroll</span>
               </button>
             </div>
           </div>
