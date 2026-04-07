@@ -25,31 +25,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-.tempo-run-v2-topbar {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 8;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.tempo-run-v2-stat {
-  min-width: 118px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(24, 41, 57, 0.08);
-  box-shadow: 0 10px 20px rgba(19, 28, 35, 0.08);
-  text-align: center;
-}
-
-.tempo-run-v2-stat-label,
-.tempo-run-v2-panel-label,
+.tempo-run-v2-overlay-label,
 .tempo-run-v2-popup-kicker,
 .tempo-run-v2-hint {
   font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
@@ -57,141 +33,62 @@
   text-transform: uppercase;
 }
 
-.tempo-run-v2-stat-label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.58rem;
-  color: #5b6d80;
-}
-
-.tempo-run-v2-stat strong {
-  font-size: 1.02rem;
-  color: #152230;
-}
-
-.tempo-run-v2-progress-panel,
-.tempo-run-v2-queue-panel {
+.tempo-run-v2-overlay-hud {
   position: absolute;
+  inset: 16px 18px auto;
   z-index: 7;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(24, 41, 57, 0.1);
-  box-shadow: 0 14px 24px rgba(24, 36, 50, 0.09);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  pointer-events: none;
 }
 
-.tempo-run-v2-progress-panel {
-  left: 18px;
-  top: 108px;
-  bottom: 100px;
-  width: 82px;
-  border-radius: 22px;
-  padding: 16px 12px;
+.tempo-run-v2-overlay-left,
+.tempo-run-v2-overlay-center,
+.tempo-run-v2-overlay-right {
   display: grid;
+  gap: 4px;
+  color: #172536;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.tempo-run-v2-overlay-center {
   justify-items: center;
-  align-content: start;
-  gap: 14px;
-}
-
-.tempo-run-v2-queue-panel {
-  right: 18px;
-  top: 110px;
-  width: 180px;
-  border-radius: 22px;
-  padding: 16px 14px;
-  display: grid;
-  gap: 12px;
-}
-
-.tempo-run-v2-panel-label {
-  font-size: 0.56rem;
-  color: #627488;
-}
-
-.tempo-run-v2-progress-rail {
-  position: relative;
-  width: 16px;
-  flex: 1;
-  align-self: stretch;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(105, 153, 211, 0.18), rgba(39, 79, 122, 0.08));
-  overflow: hidden;
-}
-
-.tempo-run-v2-progress-fill {
-  position: absolute;
-  inset: auto 0 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, #7ef1c8 0%, #26b7a8 100%);
-}
-
-.tempo-run-v2-progress-marker {
-  position: absolute;
-  left: 50%;
-  width: 26px;
-  height: 14px;
-  transform: translate(-50%, 50%);
-  border-radius: 999px;
-  background: #ff9352;
-  border: 2px solid #ffffff;
-  box-shadow: 0 6px 12px rgba(28, 41, 50, 0.12);
-}
-
-.tempo-run-v2-progress-endcaps {
-  display: grid;
-  gap: 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #506173;
   text-align: center;
 }
 
-.tempo-run-v2-queue-list {
-  display: grid;
-  gap: 8px;
+.tempo-run-v2-overlay-right {
+  justify-items: end;
+  text-align: right;
 }
 
-.tempo-run-v2-queue-item {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 14px;
-  background: rgba(158, 211, 255, 0.18);
-  border: 1px solid transparent;
+.tempo-run-v2-overlay-label {
+  display: block;
+  font-size: 0.56rem;
+  color: #5c7389;
 }
 
-.tempo-run-v2-queue-item.is-current {
-  border-color: rgba(255, 154, 82, 0.58);
-  background: rgba(255, 227, 159, 0.32);
-}
-
-.tempo-run-v2-queue-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.tempo-run-v2-queue-copy strong {
-  font-size: 0.84rem;
+.tempo-run-v2-overlay-left strong,
+.tempo-run-v2-overlay-center strong,
+.tempo-run-v2-overlay-right strong {
+  font-size: clamp(0.92rem, 2vw, 1.3rem);
   color: #152230;
 }
 
-.tempo-run-v2-queue-copy span {
-  font-size: 0.72rem;
-  color: #68798a;
+.tempo-run-v2-overlay-metric {
+  display: grid;
+  gap: 3px;
 }
 
 .tempo-run-v2-track-viewport {
   position: absolute;
-  inset: 92px 212px 94px 118px;
+  inset: 22px 22px 94px;
   overflow: hidden;
   border-radius: 24px;
   background: linear-gradient(180deg, #bfeaff 0%, #fff0a9 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
     inset 0 -12px 20px rgba(53, 83, 110, 0.06);
-  cursor: pointer;
 }
 
 .tempo-run-v2-track-backdrop,
@@ -270,7 +167,7 @@
 
 .tempo-run-v2-feedback {
   left: 50%;
-  top: 18px;
+  top: 66px;
   transform: translateX(-50%);
   z-index: 6;
   display: grid;
@@ -329,11 +226,10 @@
 }
 
 .tempo-run-v2-hurdle {
-  bottom: 58px;
+  bottom: 60px;
   z-index: 4;
-  display: grid;
-  justify-items: center;
-  gap: 8px;
+  width: 14px;
+  height: 92px;
   transform: translateX(-50%);
   transition: opacity 120ms linear;
 }
@@ -347,41 +243,17 @@
   filter: grayscale(0.2) saturate(0.72);
 }
 
-.tempo-run-v2-hurdle-marker {
-  color: var(--hurdle-accent, #ff9b52);
-}
-
-.tempo-run-v2-hurdle-asset {
+.tempo-run-v2-hurdle-line {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-.tempo-run-v2-hurdle-fallback {
-  width: 100%;
-  height: 100%;
-  border-radius: 12px 12px 5px 5px;
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 34%),
-    linear-gradient(180deg, var(--hurdle-accent, #ff9b52), #1d2934);
-  box-shadow: 0 10px 0 rgba(16, 28, 39, 0.18);
-}
-
-.tempo-run-v2-hurdle-fallback.is-eighth {
-  clip-path: polygon(0 14%, 100% 0, 100% 100%, 0 100%);
-}
-
-.tempo-run-v2-hurdle-fallback.is-sixteenth {
-  clip-path: polygon(0 24%, 100% 0, 100% 100%, 0 100%);
-}
-
-.tempo-run-v2-hurdle-fallback.is-half {
-  border-radius: 16px 16px 5px 5px;
-}
-
-.tempo-run-v2-hurdle-fallback.is-whole {
-  border-radius: 999px 999px 10px 10px;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0 12%, transparent 12%),
+    linear-gradient(180deg, var(--hurdle-accent, #ff9b52), color-mix(in srgb, var(--hurdle-accent, #ff9b52) 68%, #17222f));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.28) inset,
+    0 0 20px color-mix(in srgb, var(--hurdle-accent, #ff9b52) 34%, transparent),
+    0 12px 0 rgba(17, 29, 40, 0.16);
 }
 
 .tempo-run-v2-runner {
@@ -481,66 +353,10 @@
   background: #ffe58d;
 }
 
-.tempo-run-v2-rhythm-glyph {
-  display: inline-flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 4px;
-  min-width: 24px;
-  height: 22px;
-}
-
-.tempo-run-v2-rhythm-glyph.is-compact {
-  height: 18px;
-  gap: 3px;
-}
-
-.tempo-run-v2-rhythm-bar,
-.tempo-run-v2-rest-bar {
-  display: inline-block;
-}
-
-.tempo-run-v2-rhythm-bar {
-  width: 4px;
-  height: 18px;
-  border-radius: 999px;
-  background: currentColor;
-}
-
-.tempo-run-v2-rhythm-glyph.is-half .tempo-run-v2-rhythm-bar {
-  width: 6px;
-  height: 22px;
-}
-
-.tempo-run-v2-rhythm-glyph.is-whole .tempo-run-v2-rhythm-bar {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-}
-
-.tempo-run-v2-rhythm-glyph.is-sixteenth .tempo-run-v2-rhythm-bar {
-  width: 3px;
-}
-
-.tempo-run-v2-rhythm-glyph.is-compact .tempo-run-v2-rhythm-bar {
-  height: 14px;
-}
-
-.tempo-run-v2-rest-bar {
-  width: 18px;
-  height: 4px;
-  margin-top: 9px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow:
-    6px 6px 0 currentColor,
-    -6px 6px 0 currentColor;
-}
-
 .tempo-run-v2-count-strip {
   position: absolute;
-  left: 118px;
-  right: 212px;
+  left: 22px;
+  right: 22px;
   bottom: 24px;
   height: 54px;
   z-index: 7;
@@ -574,35 +390,17 @@
 
 .tempo-run-v2-hint {
   position: absolute;
-  left: 118px;
+  left: 26px;
   bottom: 82px;
   z-index: 7;
   font-size: 0.56rem;
   color: rgba(22, 36, 48, 0.72);
 }
 
-.tempo-run-v2-jump-button,
 .tempo-run-v2-button {
   border: none;
   cursor: pointer;
   font-weight: 800;
-}
-
-.tempo-run-v2-jump-button {
-  position: absolute;
-  right: 22px;
-  bottom: 20px;
-  z-index: 8;
-  min-width: 120px;
-  padding: 14px 18px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #ffcf5b 0%, #ff9150 100%);
-  color: #172330;
-  box-shadow: 0 14px 26px rgba(255, 150, 82, 0.24);
-}
-
-.tempo-run-v2-jump-button:active {
-  transform: translateY(1px);
 }
 
 .tempo-run-v2-popup-backdrop {
@@ -667,20 +465,16 @@
 
 @media (max-width: 1100px) {
   .tempo-run-v2-track-viewport {
-    inset: 100px 178px 96px 104px;
+    inset: 18px 18px 92px;
   }
 
   .tempo-run-v2-count-strip {
-    left: 104px;
-    right: 178px;
+    left: 18px;
+    right: 18px;
   }
 
   .tempo-run-v2-hint {
-    left: 104px;
-  }
-
-  .tempo-run-v2-queue-panel {
-    width: 156px;
+    left: 22px;
   }
 }
 
@@ -693,95 +487,68 @@
     aspect-ratio: 10 / 14;
   }
 
-  .tempo-run-v2-topbar {
-    top: 14px;
-    width: calc(100% - 20px);
+  .tempo-run-v2-overlay-hud {
+    inset: 14px 14px auto;
   }
 
-  .tempo-run-v2-stat {
-    min-width: 92px;
-    padding: 8px 10px;
+  .tempo-run-v2-overlay-label {
+    font-size: 0.5rem;
   }
 
-  .tempo-run-v2-progress-panel {
-    left: 14px;
-    top: 108px;
-    bottom: 118px;
-    width: 64px;
-    padding: 12px 10px;
-  }
-
-  .tempo-run-v2-queue-panel {
-    right: 14px;
-    top: 108px;
-    width: 124px;
-    padding: 12px 10px;
+  .tempo-run-v2-overlay-left strong,
+  .tempo-run-v2-overlay-center strong,
+  .tempo-run-v2-overlay-right strong {
+    font-size: 0.88rem;
   }
 
   .tempo-run-v2-track-viewport {
-    inset: 162px 18px 114px 18px;
+    inset: 18px 18px 104px;
   }
 
   .tempo-run-v2-count-strip {
     left: 18px;
     right: 18px;
-    bottom: 64px;
+    bottom: 52px;
   }
 
   .tempo-run-v2-hint {
     left: 18px;
-    right: 148px;
-    bottom: 28px;
+    right: 18px;
+    bottom: 22px;
     font-size: 0.52rem;
-  }
-
-  .tempo-run-v2-jump-button {
-    right: 14px;
-    bottom: 16px;
-    min-width: 108px;
-    padding: 12px 16px;
   }
 }
 
 @media (max-width: 560px) {
-  .tempo-run-v2-stat {
-    min-width: 82px;
+  .tempo-run-v2-overlay-hud {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .tempo-run-v2-overlay-left,
+  .tempo-run-v2-overlay-center,
+  .tempo-run-v2-overlay-right {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .tempo-run-v2-overlay-right {
+    grid-template-columns: repeat(2, minmax(0, auto));
+    justify-content: space-between;
+    justify-items: start;
   }
 
   .tempo-run-v2-track-viewport {
-    inset: 172px 12px 118px 12px;
-  }
-
-  .tempo-run-v2-progress-panel,
-  .tempo-run-v2-queue-panel {
-    border-radius: 18px;
-  }
-
-  .tempo-run-v2-progress-panel {
-    width: 56px;
-  }
-
-  .tempo-run-v2-queue-panel {
-    width: 108px;
-  }
-
-  .tempo-run-v2-queue-item {
-    grid-template-columns: 40px 1fr;
-    gap: 8px;
-    padding: 8px;
-  }
-
-  .tempo-run-v2-queue-copy strong {
-    font-size: 0.74rem;
-  }
-
-  .tempo-run-v2-queue-copy span {
-    font-size: 0.64rem;
+    inset: 18px 12px 112px;
   }
 
   .tempo-run-v2-runner {
     width: 102px;
     height: 102px;
+  }
+
+  .tempo-run-v2-feedback {
+    top: 104px;
   }
 
   .tempo-run-v2-feedback-art {

@@ -23,7 +23,6 @@ const FEEDBACK_MS = 940
 const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
 const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
-const QUEUE_SIZE = 6
 const SUBDIVISION_STEP = 0.5
 const START_LEAD_BEATS = 4
 const COURSE_REPEATS = 3
@@ -320,26 +319,6 @@ function getBeatLabel(beat) {
   return `${measureBeat + 1}`
 }
 
-function getHurdleSize(rhythmKey) {
-  if (rhythmKey === 'half') {
-    return { width: 96, height: 100 }
-  }
-
-  if (rhythmKey === 'whole') {
-    return { width: 108, height: 84 }
-  }
-
-  if (rhythmKey === 'sixteenth') {
-    return { width: 74, height: 74 }
-  }
-
-  if (rhythmKey === 'eighth') {
-    return { width: 64, height: 72 }
-  }
-
-  return { width: 56, height: 82 }
-}
-
 function PixelRunnerArt({ src, className = '' }) {
   if (src) {
     return <img className={`tempo-run-v2-runner-sprite ${className}`.trim()} src={src} alt="" />
@@ -352,26 +331,6 @@ function PixelRunnerArt({ src, className = '' }) {
       <span className="tempo-run-v2-runner-arm" />
       <span className="tempo-run-v2-runner-leg is-back" />
       <span className="tempo-run-v2-runner-leg is-front" />
-    </div>
-  )
-}
-
-function RhythmGlyph({ rhythmKey, compact = false }) {
-  const rhythm = RHYTHM_BY_KEY[rhythmKey]
-
-  if (!rhythm || rhythmKey === 'rest') {
-    return (
-      <div className={`tempo-run-v2-rhythm-glyph is-rest ${compact ? 'is-compact' : ''}`.trim()}>
-        <span className="tempo-run-v2-rest-bar" />
-      </div>
-    )
-  }
-
-  return (
-    <div className={`tempo-run-v2-rhythm-glyph is-${rhythmKey} ${compact ? 'is-compact' : ''}`.trim()}>
-      {Array.from({ length: rhythm.markers }).map((_, index) => (
-        <span key={`${rhythmKey}-${index}`} className="tempo-run-v2-rhythm-bar" />
-      ))}
     </div>
   )
 }
@@ -572,10 +531,6 @@ function TempoRunV2({ onExit }) {
     })
   }
 
-  const queueEvents = course.events
-    .filter((event) => event.endBeat > currentBeat - 0.02)
-    .slice(0, QUEUE_SIZE)
-
   const stageBackgroundStyle = backgroundUrl
     ? {
         backgroundImage: `url(${backgroundUrl})`,
@@ -587,69 +542,30 @@ function TempoRunV2({ onExit }) {
     <main className="tempo-run-v2-shell">
       <section className="tempo-run-v2-stage-card">
         <div className="tempo-run-v2-stage-wrap">
-          <header className="tempo-run-v2-topbar" aria-label="Tempo run side scroll stats">
-            <div className="tempo-run-v2-stat">
-              <span className="tempo-run-v2-stat-label">BPM</span>
-              <strong>{BPM}</strong>
-            </div>
-            <div className="tempo-run-v2-stat">
-              <span className="tempo-run-v2-stat-label">Score</span>
-              <strong>{ui.score.toLocaleString()}</strong>
-            </div>
-            <div className="tempo-run-v2-stat">
-              <span className="tempo-run-v2-stat-label">Combo</span>
-              <strong>{ui.combo}x</strong>
-            </div>
-            <div className="tempo-run-v2-stat">
-              <span className="tempo-run-v2-stat-label">Accuracy</span>
-              <strong>{formatAccuracy(ui.accuracy)}</strong>
-            </div>
-          </header>
-
-          <aside className="tempo-run-v2-progress-panel">
-            <span className="tempo-run-v2-panel-label">Course</span>
-            <div className="tempo-run-v2-progress-rail">
-              <div
-                className="tempo-run-v2-progress-fill"
-                style={{ height: `${ui.progress * 100}%` }}
-              />
-              <div
-                className="tempo-run-v2-progress-marker"
-                style={{ bottom: `${ui.progress * 100}%` }}
-              />
-            </div>
-            <div className="tempo-run-v2-progress-endcaps">
-              <span>Start</span>
-              <span>Finish</span>
-            </div>
-          </aside>
-
-          <aside className="tempo-run-v2-queue-panel">
-            <span className="tempo-run-v2-panel-label">Queue</span>
-            <div className="tempo-run-v2-queue-list" role="list" aria-label="Upcoming rhythms">
-              {queueEvents.map((event, index) => (
-                <article
-                  key={event.id}
-                  className={`tempo-run-v2-queue-item ${index === 0 ? 'is-current' : ''}`.trim()}
-                  role="listitem"
-                >
-                  <RhythmGlyph rhythmKey={event.rhythmKey} compact />
-                  <div className="tempo-run-v2-queue-copy">
-                    <strong>{RHYTHM_BY_KEY[event.rhythmKey].label}</strong>
-                    <span>{RHYTHM_BY_KEY[event.rhythmKey].beats} beat</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </aside>
-
-          <div
-            className="tempo-run-v2-track-viewport"
-            onPointerDown={handlePrimaryAction}
-            onContextMenu={(event) => event.preventDefault()}
-          >
+          <div className="tempo-run-v2-track-viewport">
             <div className="tempo-run-v2-track-backdrop" style={stageBackgroundStyle} />
             <div className="tempo-run-v2-sky-glow" aria-hidden="true" />
+
+            <header className="tempo-run-v2-overlay-hud" aria-label="Tempo run side scroll stats">
+              <div className="tempo-run-v2-overlay-left">
+                <span className="tempo-run-v2-overlay-label">BPM</span>
+                <strong>{BPM}</strong>
+              </div>
+              <div className="tempo-run-v2-overlay-center">
+                <span className="tempo-run-v2-overlay-label">Score</span>
+                <strong>{ui.score.toLocaleString()}</strong>
+              </div>
+              <div className="tempo-run-v2-overlay-right">
+                <div className="tempo-run-v2-overlay-metric">
+                  <span className="tempo-run-v2-overlay-label">Combo</span>
+                  <strong>{ui.combo}x</strong>
+                </div>
+                <div className="tempo-run-v2-overlay-metric">
+                  <span className="tempo-run-v2-overlay-label">Accuracy</span>
+                  <strong>{formatAccuracy(ui.accuracy)}</strong>
+                </div>
+              </div>
+            </header>
 
             {gridLines.map((line) => (
               <span
@@ -706,8 +622,6 @@ function TempoRunV2({ onExit }) {
 
             {visibleHurdles.map((hurdle) => {
               const rhythm = RHYTHM_BY_KEY[hurdle.rhythmKey]
-              const assetSrc = TEMPO_RUN_V2_ASSET_URLS[rhythm.hurdle] ?? null
-              const size = getHurdleSize(hurdle.rhythmKey)
 
               return (
                 <article
@@ -715,27 +629,11 @@ function TempoRunV2({ onExit }) {
                   className={`tempo-run-v2-hurdle is-${hurdle.state}`.trim()}
                   style={{
                     left: `${hurdle.leftPercent}%`,
-                    width: `${size.width}px`,
-                    height: `${size.height}px`,
                     '--hurdle-accent': rhythm.accent,
                   }}
+                  aria-hidden="true"
                 >
-                  <div className="tempo-run-v2-hurdle-marker">
-                    <RhythmGlyph rhythmKey={hurdle.rhythmKey} />
-                  </div>
-                  {assetSrc ? (
-                    <img
-                      className="tempo-run-v2-hurdle-asset"
-                      src={assetSrc}
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <div
-                      className={`tempo-run-v2-hurdle-fallback is-${hurdle.rhythmKey}`.trim()}
-                      aria-hidden="true"
-                    />
-                  )}
+                  <div className="tempo-run-v2-hurdle-line" />
                 </article>
               )
             })}
@@ -776,18 +674,7 @@ function TempoRunV2({ onExit }) {
             ))}
           </div>
 
-          <div className="tempo-run-v2-hint">Space, Up, or tap to jump</div>
-
-          <button
-            className="tempo-run-v2-jump-button"
-            type="button"
-            onPointerDown={(event) => {
-              event.preventDefault()
-              handlePrimaryAction()
-            }}
-          >
-            Jump
-          </button>
+          <div className="tempo-run-v2-hint">Press Space to jump</div>
 
           {ui.phase === 'finished' && (
             <div className="tempo-run-v2-popup-backdrop">
