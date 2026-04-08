@@ -16,7 +16,20 @@ const PERFECT_WINDOW = 0.055
 const GOOD_WINDOW = 0.145
 const MISS_WINDOW = 0.24
 const UI_SYNC_MS = 1000 / 30
-const JUMP_ANIMATION_MS = 360
+const INPUT_DEBOUNCE_MS = 75
+const JUMP_ASCEND_MS = 170
+const JUMP_HANG_MS = 120
+const JUMP_DESCEND_MS = 220
+const JUMP_TOTAL_MS = JUMP_ASCEND_MS + JUMP_HANG_MS + JUMP_DESCEND_MS
+const JUMP_PEAK_OFFSET = 92
+const FLOAT_HOVER_OFFSET = 84
+const FLOAT_BOB_MS = 220
+const FLOAT_BOB_AMPLITUDE = 4
+const FLOAT_DESCEND_MS = 220
+const FLOAT_SPIN_MS = 220
+const MIN_GROUND_RESET_MS = 110
+const MIN_JUMP_CYCLE_SEC = (JUMP_TOTAL_MS + MIN_GROUND_RESET_MS) / 1000
+const FLOAT_RELEASE_BUFFER_SEC = 0.04
 const STUMBLE_ANIMATION_MS = 480
 const RUN_FRAME_MS = 90
 const FEEDBACK_MS = 940
@@ -32,48 +45,36 @@ const RHYTHM_TYPES = [
     key: 'quarter',
     label: 'Quarter',
     beats: 1,
-    markers: 1,
-    hurdle: 'hurdle_quarter.png',
     accent: '#ff9b52',
   },
   {
     key: 'eighth',
     label: 'Eighth',
     beats: 0.5,
-    markers: 2,
-    hurdle: 'hurdle_eighth.png',
     accent: '#5fd8d3',
   },
   {
     key: 'sixteenth',
     label: 'Sixteenth',
     beats: 0.25,
-    markers: 4,
-    hurdle: 'hurdle_sixteenth.png',
     accent: '#ff6d6d',
   },
   {
     key: 'half',
     label: 'Half',
     beats: 2,
-    markers: 1,
-    hurdle: 'hurdle_half.png',
     accent: '#8f93ff',
   },
   {
     key: 'whole',
     label: 'Whole',
     beats: 4,
-    markers: 1,
-    hurdle: 'hurdle_whole.png',
     accent: '#f7f5d1',
   },
   {
     key: 'rest',
     label: 'Rest',
     beats: 1,
-    markers: 0,
-    hurdle: null,
     accent: '#8197aa',
   },
 ]
@@ -112,6 +113,14 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
 }
 
+function easeOutQuad(value) {
+  return 1 - (1 - value) * (1 - value)
+}
+
+function easeInQuad(value) {
+  return value * value
+}
+
 function formatDelta(deltaSec) {
   const rounded = Math.round(deltaSec * 1000)
   return `${rounded > 0 ? '+' : ''}${rounded}ms`
@@ -123,24 +132,12 @@ function formatAccuracy(accuracy) {
 
 function createCourse() {
   let beatCursor = START_LEAD_BEATS
-  const events = []
   const hurdles = []
 
   for (let repeat = 0; repeat < COURSE_REPEATS; repeat += 1) {
     for (let index = 0; index < COURSE_PATTERN.length; index += 1) {
       const rhythmKey = COURSE_PATTERN[index]
       const rhythm = RHYTHM_BY_KEY[rhythmKey]
-      const event = {
-        id: `event-${repeat}-${index}`,
-        rhythmKey,
-        label: rhythm.label,
-        beat: beatCursor,
-        startTime: beatCursor * SECONDS_PER_BEAT,
-        endBeat: beatCursor + rhythm.beats,
-        endTime: (beatCursor + rhythm.beats) * SECONDS_PER_BEAT,
-      }
-
-      events.push(event)
 
       if (rhythmKey !== 'rest') {
         hurdles.push({
@@ -159,9 +156,7 @@ function createCourse() {
   }
 
   return {
-    events,
     hurdles,
-    totalBeats: beatCursor + 2,
     totalTime: (beatCursor + 2) * SECONDS_PER_BEAT,
   }
 }
@@ -181,7 +176,12 @@ function createGameState(course) {
     nextTargetIndex: 0,
     hurdles: course.hurdles.map((hurdle) => ({ ...hurdle })),
     runner: {
+      airState: 'grounded',
       jumpStartedAtMs: -Infinity,
+      floatStartedAtMs: -Infinity,
+      floatReleaseAtTime: -Infinity,
+      landingStartedAtMs: -Infinity,
+      spinStartedAtMs: -Infinity,
       stumbleStartedAtMs: -Infinity,
       lastInputAtMs: -Infinity,
     },
@@ -207,7 +207,7 @@ function createUiSnapshot(state, nowMs = performance.now()) {
     misses: state.misses,
     accuracy: getAccuracy(state),
     feedback: state.feedback,
-    progress: clamp(state.songTime / state.totalTime, 0, 1),
+    hurdles: state.hurdles.map((hurdle) => ({ ...hurdle })),
     nowMs,
     runner: { ...state.runner },
   }
@@ -222,6 +222,69 @@ function advanceTargetIndex(state) {
 
 function getPendingHurdle(state) {
   return state.hurdles[state.nextTargetIndex] ?? null
+}
+
+function isRunnerAirborne(runner) {
+  return runner.airState !== 'grounded'
+}
+
+function setRunnerGrounded(runner) {
+  runner.airState = 'grounded'
+  runner.jumpStartedAtMs = -Infinity
+  runner.floatStartedAtMs = -Infinity
+  runner.floatReleaseAtTime = -Infinity
+  runner.landingStartedAtMs = -Infinity
+  runner.spinStartedAtMs = -Infinity
+}
+
+function startRunnerJump(runner, nowMs) {
+  runner.airState = 'jump'
+  runner.jumpStartedAtMs = nowMs
+  runner.floatStartedAtMs = -Infinity
+  runner.floatReleaseAtTime = -Infinity
+  runner.landingStartedAtMs = -Infinity
+  runner.spinStartedAtMs = -Infinity
+}
+
+function pulseRunnerSpin(runner, nowMs) {
+  runner.spinStartedAtMs = nowMs
+}
+
+function enterRunnerFloat(runner, nowMs, releaseAtTime) {
+  runner.airState = 'float'
+  if (!Number.isFinite(runner.floatStartedAtMs)) {
+    runner.floatStartedAtMs = nowMs
+  } else {
+    runner.floatStartedAtMs = Math.min(runner.floatStartedAtMs, nowMs)
+  }
+  runner.floatReleaseAtTime = Math.max(runner.floatReleaseAtTime, releaseAtTime)
+  runner.landingStartedAtMs = -Infinity
+  pulseRunnerSpin(runner, nowMs)
+}
+
+function startRunnerLanding(runner, nowMs) {
+  runner.airState = 'landing'
+  runner.landingStartedAtMs = nowMs
+  runner.floatStartedAtMs = -Infinity
+  runner.floatReleaseAtTime = -Infinity
+  runner.spinStartedAtMs = -Infinity
+}
+
+function getDenseClusterEndTime(state, anchorHitTime) {
+  let clusterEndTime = anchorHitTime
+  let previousHitTime = anchorHitTime
+  let hasDenseContinuation = false
+
+  for (let index = state.nextTargetIndex; index < state.hurdles.length; index += 1) {
+    const hurdle = state.hurdles[index]
+    if (hurdle.state !== 'pending') continue
+    if (hurdle.hitTime - previousHitTime > MIN_JUMP_CYCLE_SEC) break
+    hasDenseContinuation = true
+    clusterEndTime = hurdle.hitTime
+    previousHitTime = hurdle.hitTime
+  }
+
+  return hasDenseContinuation ? clusterEndTime : anchorHitTime
 }
 
 function buildFeedback(kind, deltaSec, combo, nowMs) {
@@ -257,53 +320,85 @@ function buildFeedback(kind, deltaSec, combo, nowMs) {
   }
 }
 
+function getJumpArcOffset(elapsedMs) {
+  if (elapsedMs <= 0) return 0
+
+  if (elapsedMs < JUMP_ASCEND_MS) {
+    return easeOutQuad(clamp(elapsedMs / JUMP_ASCEND_MS, 0, 1)) * JUMP_PEAK_OFFSET
+  }
+
+  if (elapsedMs < JUMP_ASCEND_MS + JUMP_HANG_MS) {
+    return JUMP_PEAK_OFFSET
+  }
+
+  if (elapsedMs < JUMP_TOTAL_MS) {
+    const progress = clamp((elapsedMs - JUMP_ASCEND_MS - JUMP_HANG_MS) / JUMP_DESCEND_MS, 0, 1)
+    return (1 - easeInQuad(progress)) * JUMP_PEAK_OFFSET
+  }
+
+  return 0
+}
+
+function getFloatLandingOffset(elapsedMs) {
+  const progress = clamp(elapsedMs / FLOAT_DESCEND_MS, 0, 1)
+  return (1 - easeInQuad(progress)) * FLOAT_HOVER_OFFSET
+}
+
 function getRunnerFrame(state, nowMs) {
-  const stumbleElapsed = nowMs - state.runner.stumbleStartedAtMs
+  const runner = state.runner
+  let spriteName = 'runner_idle.png'
+  let jumpOffset = 0
+  let motionBlur = false
+  let stateClass = 'is-idle'
+
+  if (runner.airState === 'jump') {
+    const jumpElapsed = nowMs - runner.jumpStartedAtMs
+    const progress = clamp(jumpElapsed / JUMP_TOTAL_MS, 0, 1)
+    spriteName =
+      progress < 0.24
+        ? 'runner_jump_start.png'
+        : progress < 0.7
+          ? 'runner_jump_mid.png'
+          : 'runner_jump_land.png'
+    jumpOffset = getJumpArcOffset(jumpElapsed)
+    motionBlur = progress > 0.12 && progress < 0.78
+    stateClass = 'is-jumping'
+  } else if (runner.airState === 'float') {
+    const hasSpin = nowMs - runner.spinStartedAtMs < FLOAT_SPIN_MS
+    spriteName = hasSpin ? 'runner_air_spin.png' : 'runner_jump_mid.png'
+    jumpOffset =
+      FLOAT_HOVER_OFFSET +
+      Math.sin((nowMs - runner.floatStartedAtMs) / FLOAT_BOB_MS) * FLOAT_BOB_AMPLITUDE
+    stateClass = hasSpin ? 'is-floating-spin' : 'is-floating'
+  } else if (runner.airState === 'landing') {
+    spriteName = 'runner_jump_land.png'
+    jumpOffset = getFloatLandingOffset(nowMs - runner.landingStartedAtMs)
+    stateClass = 'is-landing'
+  } else if (state.phase === 'playing') {
+    const frame = Math.floor(nowMs / RUN_FRAME_MS) % 4
+    spriteName = `runner_run_0${frame + 1}.png`
+    jumpOffset = Math.sin(nowMs / 120) * 4
+    stateClass = 'is-running'
+  }
+
+  const stumbleElapsed = nowMs - runner.stumbleStartedAtMs
   if (stumbleElapsed < STUMBLE_ANIMATION_MS) {
     return {
       spriteName:
         stumbleElapsed < STUMBLE_ANIMATION_MS / 2
           ? 'runner_stumble_01.png'
           : 'runner_stumble_02.png',
-      jumpOffset: 0,
+      jumpOffset,
       motionBlur: false,
-      stateClass: 'is-stumbling',
+      stateClass: `${stateClass} is-stumbling`,
     }
   }
 
-  const jumpElapsed = nowMs - state.runner.jumpStartedAtMs
-  if (jumpElapsed < JUMP_ANIMATION_MS) {
-    const progress = clamp(jumpElapsed / JUMP_ANIMATION_MS, 0, 1)
-    const spriteName =
-      progress < 0.25
-        ? 'runner_jump_start.png'
-        : progress < 0.72
-          ? 'runner_jump_mid.png'
-          : 'runner_jump_land.png'
-
-    return {
-      spriteName,
-      jumpOffset: Math.sin(progress * Math.PI) * 92,
-      motionBlur: progress > 0.16 && progress < 0.82,
-      stateClass: 'is-jumping',
-    }
-  }
-
-  if (state.phase !== 'playing') {
-    return {
-      spriteName: 'runner_idle.png',
-      jumpOffset: 0,
-      motionBlur: false,
-      stateClass: 'is-idle',
-    }
-  }
-
-  const frame = Math.floor(nowMs / RUN_FRAME_MS) % 4
   return {
-    spriteName: `runner_run_0${frame + 1}.png`,
-    jumpOffset: Math.sin(nowMs / 120) * 4,
-    motionBlur: false,
-    stateClass: 'is-running',
+    spriteName,
+    jumpOffset,
+    motionBlur,
+    stateClass,
   }
 }
 
@@ -313,8 +408,7 @@ function beatToTrackPercent(beat, currentBeat) {
 
 function getBeatLabel(beat) {
   const rounded = Math.round(beat * 2) / 2
-  const isHalfBeat = !Number.isInteger(rounded)
-  if (isHalfBeat) return '&'
+  if (!Number.isInteger(rounded)) return '&'
   const measureBeat = ((rounded % 4) + 4) % 4
   return `${measureBeat + 1}`
 }
@@ -383,7 +477,10 @@ function TempoRunV2({ onExit }) {
       const state = gameRef.current
       if (!hurdle || hurdle.state !== 'pending') return
 
+      const runner = state.runner
+      const wasAirborne = isRunnerAirborne(runner)
       const kind = Math.abs(deltaSec) <= PERFECT_WINDOW ? 'perfect' : 'good'
+
       hurdle.state = 'cleared'
       hurdle.result = kind
       hurdle.judgedAt = state.songTime
@@ -391,9 +488,21 @@ function TempoRunV2({ onExit }) {
       state.bestCombo = Math.max(state.bestCombo, state.combo)
       state.hits += 1
       state.score += kind === 'perfect' ? 160 : 110
-      state.runner.jumpStartedAtMs = nowMs
+
+      if (!wasAirborne) {
+        startRunnerJump(runner, nowMs)
+      }
+
       state.feedback = buildFeedback(kind, deltaSec, state.combo, nowMs)
       advanceTargetIndex(state)
+
+      if (wasAirborne) {
+        const clusterEndTime = getDenseClusterEndTime(state, hurdle.hitTime)
+        if (clusterEndTime > hurdle.hitTime || runner.airState === 'float') {
+          enterRunnerFloat(runner, nowMs, clusterEndTime + FLOAT_RELEASE_BUFFER_SEC)
+        }
+      }
+
       syncUi(true)
     },
     [syncUi],
@@ -404,7 +513,7 @@ function TempoRunV2({ onExit }) {
     const nowMs = performance.now()
 
     if (state.phase !== 'playing') return
-    if (nowMs - state.runner.lastInputAtMs < 75) return
+    if (nowMs - state.runner.lastInputAtMs < INPUT_DEBOUNCE_MS) return
 
     state.runner.lastInputAtMs = nowMs
     state.songTime = (nowMs - state.startedAtMs) / 1000
@@ -415,8 +524,10 @@ function TempoRunV2({ onExit }) {
     const deltaSec = state.songTime - hurdle.hitTime
 
     if (deltaSec < -GOOD_WINDOW) {
-      state.runner.jumpStartedAtMs = nowMs
-      syncUi(true)
+      if (!isRunnerAirborne(state.runner)) {
+        startRunnerJump(state.runner, nowMs)
+        syncUi(true)
+      }
       return
     }
 
@@ -465,6 +576,20 @@ function TempoRunV2({ onExit }) {
       if (state.phase === 'playing') {
         state.songTime = (nowMs - state.startedAtMs) / 1000
 
+        if (state.runner.airState === 'jump' && nowMs >= state.runner.jumpStartedAtMs + JUMP_TOTAL_MS) {
+          setRunnerGrounded(state.runner)
+        } else if (
+          state.runner.airState === 'float' &&
+          state.songTime >= state.runner.floatReleaseAtTime
+        ) {
+          startRunnerLanding(state.runner, nowMs)
+        } else if (
+          state.runner.airState === 'landing' &&
+          nowMs >= state.runner.landingStartedAtMs + FLOAT_DESCEND_MS
+        ) {
+          setRunnerGrounded(state.runner)
+        }
+
         while (state.nextTargetIndex < state.hurdles.length) {
           const hurdle = state.hurdles[state.nextTargetIndex]
           if (hurdle.state !== 'pending') {
@@ -476,6 +601,7 @@ function TempoRunV2({ onExit }) {
             markMiss(hurdle, nowMs, null)
             continue
           }
+
           break
         }
 
@@ -506,7 +632,7 @@ function TempoRunV2({ onExit }) {
   const feedbackAssetUrl = ui.feedback ? TEMPO_RUN_V2_ASSET_URLS[ui.feedback.assetName] ?? null : null
   const feedbackVisible = ui.feedback && ui.nowMs - ui.feedback.atMs <= FEEDBACK_MS
 
-  const visibleHurdles = course.hurdles
+  const visibleHurdles = ui.hurdles
     .filter((hurdle) => {
       const relativeBeats = hurdle.beat - currentBeat
       return relativeBeats >= -VIEW_BEATS_BEHIND - 1 && relativeBeats <= VIEW_BEATS_AHEAD + 1
@@ -674,7 +800,7 @@ function TempoRunV2({ onExit }) {
             ))}
           </div>
 
-          <div className="tempo-run-v2-hint">Press Space to jump</div>
+          <div className="tempo-run-v2-hint">Press Space to jump and tap dense rhythms mid-air</div>
 
           {ui.phase === 'finished' && (
             <div className="tempo-run-v2-popup-backdrop">
