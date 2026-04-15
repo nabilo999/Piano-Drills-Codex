@@ -39,6 +39,10 @@ const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
 const SUBDIVISION_STEP = 0.5
 const START_LEAD_BEATS = 4
 const COURSE_REPEATS = 3
+const RUNNER_TRACK_X_PERCENT = (VIEW_BEATS_BEHIND / VIEW_BEATS_TOTAL) * 100
+const INTRO_RUN_IN_MS = 1120
+const INTRO_RUNNER_START_X_PERCENT = -12
+const INTRO_IDLE_BOB_AMPLITUDE = 3
 
 const RHYTHM_TYPES = [
   {
@@ -113,6 +117,10 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
 }
 
+function lerp(start, end, amount) {
+  return start + (end - start) * amount
+}
+
 function easeOutQuad(value) {
   return 1 - (1 - value) * (1 - value)
 }
@@ -164,6 +172,7 @@ function createCourse() {
 function createGameState(course) {
   return {
     phase: 'ready',
+    introStartedAtMs: 0,
     startedAtMs: 0,
     songTime: 0,
     totalTime: course.totalTime,
@@ -189,6 +198,13 @@ function createGameState(course) {
   }
 }
 
+function createIntroState(course, nowMs = performance.now()) {
+  const state = createGameState(course)
+  state.phase = 'intro-entering'
+  state.introStartedAtMs = nowMs
+  return state
+}
+
 function getAccuracy(state) {
   const attempts = state.hits + state.misses
   if (attempts === 0) return 100
@@ -198,6 +214,7 @@ function getAccuracy(state) {
 function createUiSnapshot(state, nowMs = performance.now()) {
   return {
     phase: state.phase,
+    introStartedAtMs: state.introStartedAtMs,
     songTime: state.songTime,
     totalTime: state.totalTime,
     score: state.score,
@@ -351,6 +368,25 @@ function getRunnerFrame(state, nowMs) {
   let motionBlur = false
   let stateClass = 'is-idle'
 
+  if (state.phase === 'intro-entering') {
+    const frame = Math.floor(nowMs / RUN_FRAME_MS) % 4
+    return {
+      spriteName: `runner_run_0${frame + 1}.png`,
+      jumpOffset: Math.sin(nowMs / 120) * 4,
+      motionBlur: false,
+      stateClass: 'is-running-in',
+    }
+  }
+
+  if (state.phase === 'intro-ready') {
+    return {
+      spriteName: 'runner_ready.png',
+      jumpOffset: Math.sin(nowMs / 210) * INTRO_IDLE_BOB_AMPLITUDE,
+      motionBlur: false,
+      stateClass: 'is-ready',
+    }
+  }
+
   if (runner.airState === 'jump') {
     const jumpElapsed = nowMs - runner.jumpStartedAtMs
     const progress = clamp(jumpElapsed / JUMP_TOTAL_MS, 0, 1)
@@ -402,6 +438,19 @@ function getRunnerFrame(state, nowMs) {
   }
 }
 
+function getRunnerXPercent(state, nowMs) {
+  if (state.phase === 'intro-entering') {
+    const progress = clamp((nowMs - state.introStartedAtMs) / INTRO_RUN_IN_MS, 0, 1)
+    return lerp(
+      INTRO_RUNNER_START_X_PERCENT,
+      RUNNER_TRACK_X_PERCENT,
+      easeOutQuad(progress),
+    )
+  }
+
+  return RUNNER_TRACK_X_PERCENT
+}
+
 function beatToTrackPercent(beat, currentBeat) {
   return ((beat - currentBeat + VIEW_BEATS_BEHIND) / VIEW_BEATS_TOTAL) * 100
 }
@@ -431,9 +480,10 @@ function PixelRunnerArt({ src, className = '' }) {
 
 function TempoRunV2({ onExit }) {
   const course = useMemo(() => createCourse(), [])
-  const gameRef = useRef(createGameState(course))
+  const initialState = useMemo(() => createIntroState(course), [course])
+  const gameRef = useRef(initialState)
   const animationRef = useRef(null)
-  const [ui, setUi] = useState(() => createUiSnapshot(createGameState(course)))
+  const [ui, setUi] = useState(() => createUiSnapshot(initialState))
 
   const syncUi = useCallback((force = false) => {
     const state = gameRef.current
@@ -548,12 +598,13 @@ function TempoRunV2({ onExit }) {
       return
     }
 
+    if (phase === 'intro-ready') {
+      startRun()
+      return
+    }
+
     handleJumpInput()
   }, [handleJumpInput, startRun])
-
-  useEffect(() => {
-    startRun()
-  }, [startRun])
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -573,7 +624,13 @@ function TempoRunV2({ onExit }) {
     const loop = (nowMs) => {
       const state = gameRef.current
 
-      if (state.phase === 'playing') {
+      if (
+        state.phase === 'intro-entering' &&
+        nowMs >= state.introStartedAtMs + INTRO_RUN_IN_MS
+      ) {
+        state.phase = 'intro-ready'
+        syncUi(true)
+      } else if (state.phase === 'playing') {
         state.songTime = (nowMs - state.startedAtMs) / 1000
 
         if (state.runner.airState === 'jump' && nowMs >= state.runner.jumpStartedAtMs + JUMP_TOTAL_MS) {
@@ -624,37 +681,47 @@ function TempoRunV2({ onExit }) {
     }
   }, [markMiss, syncUi])
 
+  const isPrestartPhase = ui.phase === 'intro-entering' || ui.phase === 'intro-ready'
+  const showCourse = !isPrestartPhase
   const currentBeat = ui.songTime / SECONDS_PER_BEAT
-  const runnerXPercent = (VIEW_BEATS_BEHIND / VIEW_BEATS_TOTAL) * 100
+  const runnerXPercent = getRunnerXPercent(ui, ui.nowMs)
   const runnerFrame = getRunnerFrame(ui, ui.nowMs)
-  const runnerSpriteUrl = TEMPO_RUN_V2_ASSET_URLS[runnerFrame.spriteName] ?? null
+  const runnerSpriteUrl =
+    TEMPO_RUN_V2_ASSET_URLS[runnerFrame.spriteName] ??
+    (runnerFrame.spriteName === 'runner_ready.png'
+      ? TEMPO_RUN_V2_ASSET_URLS['runner_idle.png'] ?? null
+      : null)
   const backgroundUrl = TEMPO_RUN_V2_ASSET_URLS['background_track.png'] ?? null
   const feedbackAssetUrl = ui.feedback ? TEMPO_RUN_V2_ASSET_URLS[ui.feedback.assetName] ?? null : null
   const feedbackVisible = ui.feedback && ui.nowMs - ui.feedback.atMs <= FEEDBACK_MS
 
-  const visibleHurdles = ui.hurdles
-    .filter((hurdle) => {
-      const relativeBeats = hurdle.beat - currentBeat
-      return relativeBeats >= -VIEW_BEATS_BEHIND - 1 && relativeBeats <= VIEW_BEATS_AHEAD + 1
-    })
-    .map((hurdle) => ({
-      ...hurdle,
-      leftPercent: beatToTrackPercent(hurdle.beat, currentBeat),
-    }))
+  const visibleHurdles = showCourse
+    ? ui.hurdles
+        .filter((hurdle) => {
+          const relativeBeats = hurdle.beat - currentBeat
+          return relativeBeats >= -VIEW_BEATS_BEHIND - 1 && relativeBeats <= VIEW_BEATS_AHEAD + 1
+        })
+        .map((hurdle) => ({
+          ...hurdle,
+          leftPercent: beatToTrackPercent(hurdle.beat, currentBeat),
+        }))
+    : []
 
   const gridLines = []
-  const gridStart = Math.floor((currentBeat - VIEW_BEATS_BEHIND - 1) * 2) / 2
-  const gridEnd = currentBeat + VIEW_BEATS_AHEAD + 1
-  for (let beat = gridStart; beat <= gridEnd; beat += SUBDIVISION_STEP) {
-    const leftPercent = beatToTrackPercent(beat, currentBeat)
-    if (leftPercent < -8 || leftPercent > 108) continue
-    const normalizedBeat = Math.round(beat * 2) / 2
-    gridLines.push({
-      beat: normalizedBeat,
-      leftPercent,
-      isBar: Number.isInteger(normalizedBeat) && normalizedBeat % 4 === 0,
-      isBeat: Number.isInteger(normalizedBeat),
-    })
+  if (showCourse) {
+    const gridStart = Math.floor((currentBeat - VIEW_BEATS_BEHIND - 1) * 2) / 2
+    const gridEnd = currentBeat + VIEW_BEATS_AHEAD + 1
+    for (let beat = gridStart; beat <= gridEnd; beat += SUBDIVISION_STEP) {
+      const leftPercent = beatToTrackPercent(beat, currentBeat)
+      if (leftPercent < -8 || leftPercent > 108) continue
+      const normalizedBeat = Math.round(beat * 2) / 2
+      gridLines.push({
+        beat: normalizedBeat,
+        leftPercent,
+        isBar: Number.isInteger(normalizedBeat) && normalizedBeat % 4 === 0,
+        isBeat: Number.isInteger(normalizedBeat),
+      })
+    }
   }
 
   const stageBackgroundStyle = backgroundUrl
@@ -672,26 +739,28 @@ function TempoRunV2({ onExit }) {
             <div className="tempo-run-v2-track-backdrop" style={stageBackgroundStyle} />
             <div className="tempo-run-v2-sky-glow" aria-hidden="true" />
 
-            <header className="tempo-run-v2-overlay-hud" aria-label="Tempo run side scroll stats">
-              <div className="tempo-run-v2-overlay-left">
-                <span className="tempo-run-v2-overlay-label">BPM</span>
-                <strong>{BPM}</strong>
-              </div>
-              <div className="tempo-run-v2-overlay-center">
-                <span className="tempo-run-v2-overlay-label">Score</span>
-                <strong>{ui.score.toLocaleString()}</strong>
-              </div>
-              <div className="tempo-run-v2-overlay-right">
-                <div className="tempo-run-v2-overlay-metric">
-                  <span className="tempo-run-v2-overlay-label">Combo</span>
-                  <strong>{ui.combo}x</strong>
+            {showCourse && (
+              <header className="tempo-run-v2-overlay-hud" aria-label="Tempo run side scroll stats">
+                <div className="tempo-run-v2-overlay-left">
+                  <span className="tempo-run-v2-overlay-label">BPM</span>
+                  <strong>{BPM}</strong>
                 </div>
-                <div className="tempo-run-v2-overlay-metric">
-                  <span className="tempo-run-v2-overlay-label">Accuracy</span>
-                  <strong>{formatAccuracy(ui.accuracy)}</strong>
+                <div className="tempo-run-v2-overlay-center">
+                  <span className="tempo-run-v2-overlay-label">Score</span>
+                  <strong>{ui.score.toLocaleString()}</strong>
                 </div>
-              </div>
-            </header>
+                <div className="tempo-run-v2-overlay-right">
+                  <div className="tempo-run-v2-overlay-metric">
+                    <span className="tempo-run-v2-overlay-label">Combo</span>
+                    <strong>{ui.combo}x</strong>
+                  </div>
+                  <div className="tempo-run-v2-overlay-metric">
+                    <span className="tempo-run-v2-overlay-label">Accuracy</span>
+                    <strong>{formatAccuracy(ui.accuracy)}</strong>
+                  </div>
+                </div>
+              </header>
+            )}
 
             {gridLines.map((line) => (
               <span
@@ -707,6 +776,18 @@ function TempoRunV2({ onExit }) {
             <div className="tempo-run-v2-lane-shadow" aria-hidden="true" />
             <div className="tempo-run-v2-ground" aria-hidden="true" />
             <div className="tempo-run-v2-ground-edge" aria-hidden="true" />
+
+            {ui.phase === 'intro-ready' && (
+              <div className="tempo-run-v2-start-overlay">
+                <button
+                  className="tempo-run-v2-start-button"
+                  type="button"
+                  onClick={startRun}
+                >
+                  Start
+                </button>
+              </div>
+            )}
 
             {feedbackVisible && ui.feedback && (
               <div className="tempo-run-v2-feedback">
@@ -787,20 +868,24 @@ function TempoRunV2({ onExit }) {
             </div>
           </div>
 
-          <div className="tempo-run-v2-count-strip" aria-hidden="true">
-            {gridLines.map((line) => (
-              <div
-                key={`count-${line.beat}`}
-                className={`tempo-run-v2-count-slot ${line.isBeat ? 'is-beat' : ''}`.trim()}
-                style={{ left: `${line.leftPercent}%` }}
-              >
-                <span className="tempo-run-v2-count-tick" />
-                <span className="tempo-run-v2-count-label">{getBeatLabel(line.beat)}</span>
-              </div>
-            ))}
-          </div>
+          {showCourse && (
+            <div className="tempo-run-v2-count-strip" aria-hidden="true">
+              {gridLines.map((line) => (
+                <div
+                  key={`count-${line.beat}`}
+                  className={`tempo-run-v2-count-slot ${line.isBeat ? 'is-beat' : ''}`.trim()}
+                  style={{ left: `${line.leftPercent}%` }}
+                >
+                  <span className="tempo-run-v2-count-tick" />
+                  <span className="tempo-run-v2-count-label">{getBeatLabel(line.beat)}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="tempo-run-v2-hint">Press Space to jump and tap dense rhythms mid-air</div>
+          {showCourse && (
+            <div className="tempo-run-v2-hint">Press Space to jump and tap dense rhythms mid-air</div>
+          )}
 
           {ui.phase === 'finished' && (
             <div className="tempo-run-v2-popup-backdrop">
