@@ -31,8 +31,9 @@ const MIN_GROUND_RESET_MS = 110
 const MIN_JUMP_CYCLE_SEC = (JUMP_TOTAL_MS + MIN_GROUND_RESET_MS) / 1000
 const FLOAT_RELEASE_BUFFER_SEC = 0.04
 const STUMBLE_ANIMATION_MS = 480
-const RUN_FRAME_MS = 90
+const RUN_FRAME_MS = 140
 const FEEDBACK_MS = 940
+const HURDLE_RENDER_HEIGHT = 96
 const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
 const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
@@ -50,30 +51,55 @@ const RHYTHM_TYPES = [
     label: 'Quarter',
     beats: 1,
     accent: '#ff9b52',
+    hurdle: 'hurdle_quarter.png',
+    hurdleSpriteSize: {
+      width: 216,
+      height: 408,
+    },
   },
   {
     key: 'eighth',
     label: 'Eighth',
     beats: 0.5,
     accent: '#5fd8d3',
+    hurdle: 'hurdle_eighth.png',
+    hurdleSpriteSize: {
+      width: 160,
+      height: 256,
+    },
   },
   {
     key: 'sixteenth',
     label: 'Sixteenth',
     beats: 0.25,
     accent: '#ff6d6d',
+    hurdle: 'hurdle_sixteenth.png',
+    hurdleSpriteSize: {
+      width: 260,
+      height: 472,
+    },
   },
   {
     key: 'half',
     label: 'Half',
     beats: 2,
     accent: '#8f93ff',
+    hurdle: 'hurdle_half.png',
+    hurdleSpriteSize: {
+      width: 160,
+      height: 256,
+    },
   },
   {
     key: 'whole',
     label: 'Whole',
     beats: 4,
     accent: '#f7f5d1',
+    hurdle: 'hurdle_whole.png',
+    hurdleSpriteSize: {
+      width: 160,
+      height: 256,
+    },
   },
   {
     key: 'rest',
@@ -462,6 +488,13 @@ function getBeatLabel(beat) {
   return `${measureBeat + 1}`
 }
 
+function getHurdleRenderWidth(rhythm) {
+  if (!rhythm?.hurdleSpriteSize) return 14
+  return Math.round(
+    (HURDLE_RENDER_HEIGHT * rhythm.hurdleSpriteSize.width) / rhythm.hurdleSpriteSize.height,
+  )
+}
+
 function PixelRunnerArt({ src, className = '' }) {
   if (src) {
     return <img className={`tempo-run-v2-runner-sprite ${className}`.trim()} src={src} alt="" />
@@ -829,6 +862,8 @@ function TempoRunV2({ onExit }) {
 
             {visibleHurdles.map((hurdle) => {
               const rhythm = RHYTHM_BY_KEY[hurdle.rhythmKey]
+              const hurdleAssetUrl = rhythm.hurdle ? TEMPO_RUN_V2_ASSET_URLS[rhythm.hurdle] ?? null : null
+              const hurdleWidth = getHurdleRenderWidth(rhythm)
 
               return (
                 <article
@@ -837,10 +872,21 @@ function TempoRunV2({ onExit }) {
                   style={{
                     left: `${hurdle.leftPercent}%`,
                     '--hurdle-accent': rhythm.accent,
+                    '--hurdle-width': `${hurdleWidth}px`,
+                    '--hurdle-height': `${HURDLE_RENDER_HEIGHT}px`,
                   }}
                   aria-hidden="true"
                 >
-                  <div className="tempo-run-v2-hurdle-line" />
+                  {hurdleAssetUrl ? (
+                    <img
+                      className="tempo-run-v2-hurdle-art"
+                      src={hurdleAssetUrl}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <div className="tempo-run-v2-hurdle-line" />
+                  )}
                 </article>
               )
             })}
