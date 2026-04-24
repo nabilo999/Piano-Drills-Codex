@@ -8,16 +8,10 @@ import playItByEarCardImage from './assets/play_it_by_ear_card.png'
 import leaderboardArcadeIcon from './assets/IC_leaderboard_arcade.png'
 import leaderboardPibeIcon from './assets/IC_leaderboard_PIBE.png'
 import tempoRunCardImage from './assets/tempo_run_assets/tempo_run_card.png'
+import tempoRunV2CardImage from './assets/tempo_run_assets_v2/tempo_run_card.png'
 
 const TempoRun = lazy(() => import('./TempoRun.jsx'))
 const TempoRunV2 = lazy(() => import('./TempoRunV2.jsx'))
-const TEMPO_RUN_V2_CARD_IMAGE =
-  Object.values(
-    import.meta.glob('./assets/tempo_run_assets_v2/tempo_run_card.png', {
-      eager: true,
-      import: 'default',
-    }),
-  )[0] ?? null
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -2137,30 +2131,14 @@ function App() {
                 }}
               >
                 <div
-                  className="game-card-art tempo-run-v2-card-art"
-                  style={
-                    TEMPO_RUN_V2_CARD_IMAGE
-                      ? {
-                          backgroundImage: `url(${TEMPO_RUN_V2_CARD_IMAGE})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          backgroundRepeat: 'no-repeat',
-                        }
-                      : undefined
-                  }
-                >
-                  {!TEMPO_RUN_V2_CARD_IMAGE && (
-                    <>
-                      <div className="tempo-run-v2-card-runner" aria-hidden="true" />
-                      <div className="tempo-run-v2-card-hurdle" aria-hidden="true" />
-                      <div className="tempo-run-v2-card-queue" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                    </>
-                  )}
-                </div>
+                  className="game-card-art"
+                  style={{
+                    backgroundImage: `url(${tempoRunV2CardImage})`,
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
                 <span>Tempo Run Side Scroll</span>
               </button>
             </div>
