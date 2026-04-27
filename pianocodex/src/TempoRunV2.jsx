@@ -37,7 +37,6 @@ const HURDLE_RENDER_HEIGHT = 96
 const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
 const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
-const SUBDIVISION_STEP = 0.5
 const START_LEAD_BEATS = 4
 const COURSE_REPEATS = 3
 const RUNNER_TRACK_X_PERCENT = (VIEW_BEATS_BEHIND / VIEW_BEATS_TOTAL) * 100
@@ -481,13 +480,6 @@ function beatToTrackPercent(beat, currentBeat) {
   return ((beat - currentBeat + VIEW_BEATS_BEHIND) / VIEW_BEATS_TOTAL) * 100
 }
 
-function getBeatLabel(beat) {
-  const rounded = Math.round(beat * 2) / 2
-  if (!Number.isInteger(rounded)) return '&'
-  const measureBeat = ((rounded % 4) + 4) % 4
-  return `${measureBeat + 1}`
-}
-
 function getHurdleRenderWidth(rhythm) {
   if (!rhythm?.hurdleSpriteSize) return 14
   return Math.round(
@@ -740,23 +732,6 @@ function TempoRunV2({ onExit }) {
         }))
     : []
 
-  const gridLines = []
-  if (showCourse) {
-    const gridStart = Math.floor((currentBeat - VIEW_BEATS_BEHIND - 1) * 2) / 2
-    const gridEnd = currentBeat + VIEW_BEATS_AHEAD + 1
-    for (let beat = gridStart; beat <= gridEnd; beat += SUBDIVISION_STEP) {
-      const leftPercent = beatToTrackPercent(beat, currentBeat)
-      if (leftPercent < -8 || leftPercent > 108) continue
-      const normalizedBeat = Math.round(beat * 2) / 2
-      gridLines.push({
-        beat: normalizedBeat,
-        leftPercent,
-        isBar: Number.isInteger(normalizedBeat) && normalizedBeat % 4 === 0,
-        isBeat: Number.isInteger(normalizedBeat),
-      })
-    }
-  }
-
   const stageBackgroundStyle = backgroundUrl
     ? {
         backgroundImage: `url(${backgroundUrl})`,
@@ -794,21 +769,6 @@ function TempoRunV2({ onExit }) {
                 </div>
               </header>
             )}
-
-            {gridLines.map((line) => (
-              <span
-                key={`grid-${line.beat}`}
-                className={`tempo-run-v2-grid-line ${
-                  line.isBar ? 'is-bar' : line.isBeat ? 'is-beat' : 'is-subdivision'
-                }`.trim()}
-                style={{ left: `${line.leftPercent}%` }}
-                aria-hidden="true"
-              />
-            ))}
-
-            <div className="tempo-run-v2-lane-shadow" aria-hidden="true" />
-            <div className="tempo-run-v2-ground" aria-hidden="true" />
-            <div className="tempo-run-v2-ground-edge" aria-hidden="true" />
 
             {ui.phase === 'intro-ready' && (
               <div className="tempo-run-v2-start-overlay">
@@ -913,25 +873,6 @@ function TempoRunV2({ onExit }) {
               <PixelRunnerArt src={runnerSpriteUrl} />
             </div>
           </div>
-
-          {showCourse && (
-            <div className="tempo-run-v2-count-strip" aria-hidden="true">
-              {gridLines.map((line) => (
-                <div
-                  key={`count-${line.beat}`}
-                  className={`tempo-run-v2-count-slot ${line.isBeat ? 'is-beat' : ''}`.trim()}
-                  style={{ left: `${line.leftPercent}%` }}
-                >
-                  <span className="tempo-run-v2-count-tick" />
-                  <span className="tempo-run-v2-count-label">{getBeatLabel(line.beat)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showCourse && (
-            <div className="tempo-run-v2-hint">Press Space to jump and tap dense rhythms mid-air</div>
-          )}
 
           {ui.phase === 'finished' && (
             <div className="tempo-run-v2-popup-backdrop">

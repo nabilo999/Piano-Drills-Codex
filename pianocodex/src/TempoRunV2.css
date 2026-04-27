@@ -3,9 +3,7 @@
   display: grid;
   place-items: center;
   padding: 22px;
-  background:
-    radial-gradient(circle at 12% 12%, rgba(255, 228, 170, 0.8) 0%, transparent 30%),
-    linear-gradient(180deg, #fff8ea 0%, #fff2cf 100%);
+  background: #fff;
   color: #182432;
 }
 
@@ -17,17 +15,14 @@
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(24, 36, 50, 0.08);
-  background: linear-gradient(180deg, #b9eaff 0%, #fff5c7 100%);
-  box-shadow:
-    0 24px 48px rgba(30, 39, 47, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  border: none;
+  background: #fff;
+  box-shadow: none;
 }
 
 .tempo-run-v2-overlay-label,
-.tempo-run-v2-popup-kicker,
-.tempo-run-v2-hint {
+.tempo-run-v2-popup-kicker {
   font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -85,18 +80,12 @@
   inset: 22px 22px 94px;
   overflow: hidden;
   border-radius: 24px;
-  background: linear-gradient(180deg, #bfeaff 0%, #fff0a9 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    inset 0 -12px 20px rgba(53, 83, 110, 0.06);
+  background: #fff;
+  box-shadow: none;
 }
 
 .tempo-run-v2-track-backdrop,
 .tempo-run-v2-sky-glow,
-.tempo-run-v2-grid-line,
-.tempo-run-v2-lane-shadow,
-.tempo-run-v2-ground,
-.tempo-run-v2-ground-edge,
 .tempo-run-v2-feedback,
 .tempo-run-v2-runner,
 .tempo-run-v2-hurdle {
@@ -116,53 +105,11 @@
 .tempo-run-v2-sky-glow {
   inset: 0;
   background:
-    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.65) 0%, transparent 22%),
-    radial-gradient(circle at 72% 16%, rgba(255, 243, 190, 0.75) 0%, transparent 26%);
+    radial-gradient(circle at 2% 4%, rgba(255, 255, 255, 0.24) 0%, transparent 24%),
+    radial-gradient(circle at 98% 4%, rgba(255, 243, 190, 0.28) 0%, transparent 24%),
+    radial-gradient(circle at 2% 96%, rgba(255, 255, 255, 0.14) 0%, transparent 20%),
+    radial-gradient(circle at 98% 96%, rgba(255, 243, 190, 0.16) 0%, transparent 20%);
   pointer-events: none;
-}
-
-.tempo-run-v2-grid-line {
-  top: 0;
-  bottom: 66px;
-  width: 1px;
-  background: rgba(33, 76, 115, 0.12);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.tempo-run-v2-grid-line.is-beat {
-  background: rgba(21, 58, 91, 0.2);
-}
-
-.tempo-run-v2-grid-line.is-bar {
-  width: 2px;
-  background: rgba(24, 57, 88, 0.34);
-}
-
-.tempo-run-v2-lane-shadow {
-  left: 6%;
-  right: 6%;
-  bottom: 44px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(42, 62, 80, 0.18);
-  filter: blur(10px);
-}
-
-.tempo-run-v2-ground {
-  inset: auto 0 0;
-  height: 64px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0 4px, transparent 4px),
-    linear-gradient(180deg, #2f5744 0%, #1e3d31 100%);
-}
-
-.tempo-run-v2-ground-edge {
-  left: 0;
-  right: 0;
-  bottom: 64px;
-  height: 8px;
-  background: linear-gradient(90deg, #ffe085 0%, #ffb34f 50%, #ffe085 100%);
 }
 
 .tempo-run-v2-feedback {
@@ -399,41 +346,6 @@
   background: #ffe58d;
 }
 
-.tempo-run-v2-count-strip {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 24px;
-  height: 54px;
-  z-index: 7;
-}
-
-.tempo-run-v2-count-slot {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-}
-
-.tempo-run-v2-count-tick {
-  width: 1px;
-  height: 16px;
-  background: rgba(23, 55, 83, 0.28);
-}
-
-.tempo-run-v2-count-slot.is-beat .tempo-run-v2-count-tick {
-  width: 2px;
-  background: rgba(23, 55, 83, 0.42);
-}
-
-.tempo-run-v2-count-label {
-  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
-  font-size: 0.62rem;
-  color: #4f6277;
-}
-
 .tempo-run-v2-start-overlay {
   position: absolute;
   left: 50%;
@@ -491,15 +403,6 @@
   50% {
     filter: saturate(1.08) brightness(1.06);
   }
-}
-
-.tempo-run-v2-hint {
-  position: absolute;
-  left: 26px;
-  bottom: 82px;
-  z-index: 7;
-  font-size: 0.56rem;
-  color: rgba(22, 36, 48, 0.72);
 }
 
 .tempo-run-v2-button {
@@ -572,15 +475,6 @@
   .tempo-run-v2-track-viewport {
     inset: 18px 18px 92px;
   }
-
-  .tempo-run-v2-count-strip {
-    left: 18px;
-    right: 18px;
-  }
-
-  .tempo-run-v2-hint {
-    left: 22px;
-  }
 }
 
 @media (max-width: 860px) {
@@ -612,19 +506,6 @@
 
   .tempo-run-v2-start-overlay {
     bottom: 98px;
-  }
-
-  .tempo-run-v2-count-strip {
-    left: 18px;
-    right: 18px;
-    bottom: 52px;
-  }
-
-  .tempo-run-v2-hint {
-    left: 18px;
-    right: 18px;
-    bottom: 22px;
-    font-size: 0.52rem;
   }
 }
 
