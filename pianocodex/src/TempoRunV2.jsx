@@ -786,7 +786,9 @@ function TempoRunV2({ onExit }) {
               <div className="tempo-run-v2-feedback">
                 {feedbackAssetUrl ? (
                   <img
-                    className="tempo-run-v2-feedback-art"
+                    className={`tempo-run-v2-feedback-art ${
+                      ui.feedback.label !== 'Perfect' ? 'is-compact' : ''
+                    }`.trim()}
                     src={feedbackAssetUrl}
                     alt=""
                     aria-hidden="true"
@@ -800,7 +802,6 @@ function TempoRunV2({ onExit }) {
                   </div>
                 )}
                 <div className="tempo-run-v2-feedback-copy">
-                  <strong>{ui.feedback.label}</strong>
                   <span>{ui.feedback.detail}</span>
                 </div>
                 {ui.feedback.comboUp && (

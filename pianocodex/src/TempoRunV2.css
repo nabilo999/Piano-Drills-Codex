@@ -44,7 +44,12 @@
   display: grid;
   gap: 4px;
   color: #172536;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.98),
+    1px -1px 0 rgba(255, 255, 255, 0.98),
+    -1px 1px 0 rgba(255, 255, 255, 0.98),
+    1px 1px 0 rgba(255, 255, 255, 0.98),
+    0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .tempo-run-v2-overlay-center {
@@ -129,6 +134,11 @@
   image-rendering: pixelated;
 }
 
+.tempo-run-v2-feedback-art.is-compact {
+  width: min(110px, 16vw);
+  max-width: 110px;
+}
+
 .tempo-run-v2-feedback-badge {
   min-width: 110px;
   padding: 10px 14px;
@@ -148,16 +158,16 @@
   color: #13212f;
 }
 
-.tempo-run-v2-feedback-copy strong {
-  font-family: 'Press Start 2P', 'Segoe UI', sans-serif;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
 .tempo-run-v2-feedback-copy span,
 .tempo-run-v2-combo-up-copy {
   font-size: 0.78rem;
   font-weight: 700;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.98),
+    1px -1px 0 rgba(255, 255, 255, 0.98),
+    -1px 1px 0 rgba(255, 255, 255, 0.98),
+    1px 1px 0 rgba(255, 255, 255, 0.98),
+    0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .tempo-run-v2-combo-up-art {
@@ -558,5 +568,9 @@
 
   .tempo-run-v2-feedback-art {
     width: min(178px, 44vw);
+  }
+
+  .tempo-run-v2-feedback-art.is-compact {
+    width: min(89px, 22vw);
   }
 }
