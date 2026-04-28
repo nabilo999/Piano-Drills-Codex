@@ -33,12 +33,19 @@ const FLOAT_RELEASE_BUFFER_SEC = 0.04
 const STUMBLE_ANIMATION_MS = 480
 const RUN_FRAME_MS = 140
 const FEEDBACK_MS = 940
+const CHEER_FRAME_MS = 360
+const AIR_SPIN_FRAME_MS = 70
+const LOSE_FALL_FRAME_MS = 120
+const LOSE_FALL_FRAME_COUNT = 4
+const LOSE_FALL_TOTAL_MS = LOSE_FALL_FRAME_MS * LOSE_FALL_FRAME_COUNT
+const LOSE_FALL_FORWARD_PERCENT = 8
 const HURDLE_RENDER_HEIGHT = 96
 const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
 const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
 const START_LEAD_BEATS = 4
 const COURSE_REPEATS = 3
+const MAX_LIVES = 3
 const RUNNER_TRACK_X_PERCENT = (VIEW_BEATS_BEHIND / VIEW_BEATS_TOTAL) * 100
 const INTRO_RUN_IN_MS = 1120
 const INTRO_RUNNER_START_X_PERCENT = -12
@@ -206,6 +213,7 @@ function createGameState(course) {
     bestCombo: 0,
     hits: 0,
     misses: 0,
+    lives: MAX_LIVES,
     feedback: null,
     nextTargetIndex: 0,
     hurdles: course.hurdles.map((hurdle) => ({ ...hurdle })),
@@ -217,6 +225,9 @@ function createGameState(course) {
       landingStartedAtMs: -Infinity,
       spinStartedAtMs: -Infinity,
       stumbleStartedAtMs: -Infinity,
+      loseStartedAtMs: -Infinity,
+      loseStartXPercent: RUNNER_TRACK_X_PERCENT,
+      loseEndXPercent: RUNNER_TRACK_X_PERCENT + LOSE_FALL_FORWARD_PERCENT,
       lastInputAtMs: -Infinity,
     },
     lastUiSyncAtMs: 0,
@@ -247,6 +258,7 @@ function createUiSnapshot(state, nowMs = performance.now()) {
     bestCombo: state.bestCombo,
     hits: state.hits,
     misses: state.misses,
+    lives: state.lives,
     accuracy: getAccuracy(state),
     feedback: state.feedback,
     hurdles: state.hurdles.map((hurdle) => ({ ...hurdle })),
@@ -277,6 +289,9 @@ function setRunnerGrounded(runner) {
   runner.floatReleaseAtTime = -Infinity
   runner.landingStartedAtMs = -Infinity
   runner.spinStartedAtMs = -Infinity
+  runner.loseStartedAtMs = -Infinity
+  runner.loseStartXPercent = RUNNER_TRACK_X_PERCENT
+  runner.loseEndXPercent = RUNNER_TRACK_X_PERCENT + LOSE_FALL_FORWARD_PERCENT
 }
 
 function startRunnerJump(runner, nowMs) {
@@ -310,6 +325,19 @@ function startRunnerLanding(runner, nowMs) {
   runner.floatStartedAtMs = -Infinity
   runner.floatReleaseAtTime = -Infinity
   runner.spinStartedAtMs = -Infinity
+}
+
+function startRunnerLoseFall(runner, nowMs, startXPercent, endXPercent) {
+  runner.airState = 'grounded'
+  runner.jumpStartedAtMs = -Infinity
+  runner.floatStartedAtMs = -Infinity
+  runner.floatReleaseAtTime = -Infinity
+  runner.landingStartedAtMs = -Infinity
+  runner.spinStartedAtMs = -Infinity
+  runner.stumbleStartedAtMs = -Infinity
+  runner.loseStartedAtMs = nowMs
+  runner.loseStartXPercent = startXPercent
+  runner.loseEndXPercent = endXPercent
 }
 
 function getDenseClusterEndTime(state, anchorHitTime) {
@@ -412,6 +440,31 @@ function getRunnerFrame(state, nowMs) {
     }
   }
 
+  if (state.phase === 'losing' || state.phase === 'failed') {
+    const loseElapsed = Math.max(0, nowMs - runner.loseStartedAtMs)
+    const frame = clamp(
+      Math.floor(loseElapsed / LOSE_FALL_FRAME_MS),
+      0,
+      LOSE_FALL_FRAME_COUNT - 1,
+    )
+    return {
+      spriteName: `lose_fall_0${frame + 1}.png`,
+      jumpOffset: 0,
+      motionBlur: false,
+      stateClass: 'is-losing',
+    }
+  }
+
+  if (state.phase === 'finished') {
+    const frame = Math.floor(nowMs / CHEER_FRAME_MS) % 2
+    return {
+      spriteName: `runner_cheer_0${frame + 1}.png`,
+      jumpOffset: Math.sin(nowMs / 180) * 3,
+      motionBlur: false,
+      stateClass: 'is-cheering',
+    }
+  }
+
   if (runner.airState === 'jump') {
     const jumpElapsed = nowMs - runner.jumpStartedAtMs
     const progress = clamp(jumpElapsed / JUMP_TOTAL_MS, 0, 1)
@@ -426,7 +479,8 @@ function getRunnerFrame(state, nowMs) {
     stateClass = 'is-jumping'
   } else if (runner.airState === 'float') {
     const hasSpin = nowMs - runner.spinStartedAtMs < FLOAT_SPIN_MS
-    spriteName = hasSpin ? 'runner_air_spin.png' : 'runner_jump_mid.png'
+    const spinFrame = Math.floor(Math.max(0, nowMs - runner.spinStartedAtMs) / AIR_SPIN_FRAME_MS) % 4
+    spriteName = hasSpin ? `runner_air_spin_0${spinFrame + 1}.png` : 'runner_jump_mid.png'
     jumpOffset =
       FLOAT_HOVER_OFFSET +
       Math.sin((nowMs - runner.floatStartedAtMs) / FLOAT_BOB_MS) * FLOAT_BOB_AMPLITUDE
@@ -464,6 +518,16 @@ function getRunnerFrame(state, nowMs) {
 }
 
 function getRunnerXPercent(state, nowMs) {
+  if (state.phase === 'losing' || state.phase === 'failed') {
+    const loseElapsed = Math.max(0, nowMs - state.runner.loseStartedAtMs)
+    const progress = clamp(loseElapsed / LOSE_FALL_TOTAL_MS, 0, 1)
+    return lerp(
+      state.runner.loseStartXPercent,
+      state.runner.loseEndXPercent,
+      easeOutQuad(progress),
+    )
+  }
+
   if (state.phase === 'intro-entering') {
     const progress = clamp((nowMs - state.introStartedAtMs) / INTRO_RUN_IN_MS, 0, 1)
     return lerp(
@@ -539,8 +603,22 @@ function TempoRunV2({ onExit }) {
       hurdle.judgedAt = state.songTime
       state.combo = 0
       state.misses += 1
-      state.runner.stumbleStartedAtMs = nowMs
+      state.lives -= 1
       state.feedback = buildFeedback('miss', deltaSec, state.combo, nowMs)
+      if (state.lives <= 0) {
+        const missBeat = state.songTime / SECONDS_PER_BEAT
+        const loseStartXPercent = getRunnerXPercent(state, nowMs)
+        const hurdleTrackXPercent = beatToTrackPercent(hurdle.beat, missBeat)
+        const loseEndXPercent = clamp(
+          Math.max(loseStartXPercent + 3, hurdleTrackXPercent + 2),
+          loseStartXPercent,
+          loseStartXPercent + LOSE_FALL_FORWARD_PERCENT,
+        )
+        state.phase = 'losing'
+        startRunnerLoseFall(state.runner, nowMs, loseStartXPercent, loseEndXPercent)
+      } else {
+        state.runner.stumbleStartedAtMs = nowMs
+      }
       advanceTargetIndex(state)
       syncUi(true)
     },
@@ -618,7 +696,7 @@ function TempoRunV2({ onExit }) {
 
   const handlePrimaryAction = useCallback(() => {
     const phase = gameRef.current.phase
-    if (phase === 'finished') {
+    if (phase === 'finished' || phase === 'failed') {
       startRun()
       return
     }
@@ -681,6 +759,9 @@ function TempoRunV2({ onExit }) {
 
           if (state.songTime > hurdle.hitTime + MISS_WINDOW) {
             markMiss(hurdle, nowMs, null)
+            if (state.phase !== 'playing') {
+              break
+            }
             continue
           }
 
@@ -689,6 +770,11 @@ function TempoRunV2({ onExit }) {
 
         if (state.nextTargetIndex >= state.hurdles.length && state.songTime >= state.totalTime) {
           state.phase = 'finished'
+          syncUi(true)
+        }
+      } else if (state.phase === 'losing') {
+        if (nowMs >= state.runner.loseStartedAtMs + LOSE_FALL_TOTAL_MS) {
+          state.phase = 'failed'
           syncUi(true)
         }
       }
@@ -750,6 +836,17 @@ function TempoRunV2({ onExit }) {
             {showCourse && (
               <header className="tempo-run-v2-overlay-hud" aria-label="Tempo run side scroll stats">
                 <div className="tempo-run-v2-overlay-left">
+                  <div className="tempo-run-v2-lives" aria-label={`${ui.lives} lives remaining`}>
+                    {Array.from({ length: MAX_LIVES }, (_, index) => (
+                      <span
+                        key={index}
+                        className={`tempo-run-v2-heart ${index < ui.lives ? 'is-alive' : 'is-empty'}`}
+                        aria-hidden="true"
+                      >
+                        ♥
+                      </span>
+                    ))}
+                  </div>
                   <span className="tempo-run-v2-overlay-label">BPM</span>
                   <strong>{BPM}</strong>
                 </div>
@@ -875,11 +972,11 @@ function TempoRunV2({ onExit }) {
             </div>
           </div>
 
-          {ui.phase === 'finished' && (
+          {(ui.phase === 'finished' || ui.phase === 'failed') && (
             <div className="tempo-run-v2-popup-backdrop">
               <div className="tempo-run-v2-popup">
                 <p className="tempo-run-v2-popup-kicker">Tempo Run Side Scroll</p>
-                <h2>Course Complete</h2>
+                <h2>{ui.phase === 'finished' ? 'Course Complete' : 'Out Of Lives'}</h2>
                 <p>
                   Score {ui.score.toLocaleString()}
                   <br />

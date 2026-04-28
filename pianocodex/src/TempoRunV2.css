@@ -80,6 +80,32 @@
   gap: 3px;
 }
 
+.tempo-run-v2-lives {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.tempo-run-v2-heart {
+  font-size: 1.1rem;
+  line-height: 1;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.98),
+    1px -1px 0 rgba(255, 255, 255, 0.98),
+    -1px 1px 0 rgba(255, 255, 255, 0.98),
+    1px 1px 0 rgba(255, 255, 255, 0.98),
+    0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.tempo-run-v2-heart.is-alive {
+  color: #ef5a6f;
+}
+
+.tempo-run-v2-heart.is-empty {
+  color: rgba(77, 93, 108, 0.58);
+}
+
 .tempo-run-v2-track-viewport {
   position: absolute;
   inset: 22px 22px 94px;
@@ -252,6 +278,14 @@
 
 .tempo-run-v2-runner.is-floating-spin {
   filter: drop-shadow(0 12px 20px rgba(18, 31, 42, 0.22));
+}
+
+.tempo-run-v2-runner.is-cheering {
+  filter: drop-shadow(0 12px 20px rgba(18, 31, 42, 0.18));
+}
+
+.tempo-run-v2-runner.is-losing {
+  filter: drop-shadow(0 14px 22px rgba(18, 31, 42, 0.18));
 }
 
 .tempo-run-v2-runner-sprite,
