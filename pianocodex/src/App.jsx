@@ -6,6 +6,7 @@ import pianoImage from './assets/piano.png'
 import arcadeCardImage from './assets/arcade_background.PNG'
 import playItByEarCardImage from './assets/play_it_by_ear_card.png'
 import tempoRunCardImage from './assets/tempo_run_assets_v2/tempo_run_card.png'
+import tempoRunGuideImage from './assets/tempo_run_guide.png'
 import underConstructionImage from './assets/under_construction.png'
 
 const TempoRunV2 = lazy(() => import('./TempoRunV2.jsx'))
@@ -22,9 +23,37 @@ const MIC_MAX_JUMP_SEMITONES = 7
 const MIC_NOTE_HOLD_MS = 180
 const MIDI_NOTE_HOLD_MS = 220
 
-const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
-const LEVEL_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
-const MOVEMENT_OPTIONS = ['staggered', 'classic']
+const DIFFICULTY_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
+const DIFFICULTY_CONFIG = {
+  beginner: {
+    readSpeed: 15,
+    minMidi: 48,
+    maxMidi: 72,
+    whiteOnly: true,
+    movement: 'classic',
+  },
+  intermediate: {
+    readSpeed: 10,
+    minMidi: 48,
+    maxMidi: 72,
+    whiteOnly: false,
+    movement: 'classic',
+  },
+  advanced: {
+    readSpeed: 5,
+    minMidi: 40,
+    maxMidi: 84,
+    whiteOnly: false,
+    movement: 'mixed',
+  },
+  nightmare: {
+    readSpeed: 3,
+    minMidi: 40,
+    maxMidi: 84,
+    whiteOnly: false,
+    movement: 'mixed',
+  },
+}
 const UI_FRAME_MS = 1000 / 30
 const AUDIO_UNLOCK_SRC =
   'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='
@@ -196,23 +225,13 @@ function autoCorrelate(buffer, sampleRate) {
   return sampleRate / (bestOffset + 8 * shift)
 }
 
+function getDifficultyConfig(level) {
+  return DIFFICULTY_CONFIG[level] ?? DIFFICULTY_CONFIG.beginner
+}
+
 function getPoolForLevel(level) {
   const pool = []
-  let minMidi = 48
-  let maxMidi = 72
-  let whiteOnly = true
-
-  if (level === 'intermediate') {
-    minMidi = 45
-    maxMidi = 76
-    whiteOnly = false
-  }
-
-  if (level === 'advanced' || level === 'nightmare') {
-    minMidi = 40
-    maxMidi = 84
-    whiteOnly = false
-  }
+  const { minMidi, maxMidi, whiteOnly } = getDifficultyConfig(level)
 
   for (let midi = minMidi; midi <= maxMidi; midi += 1) {
     if (whiteOnly && !WHITE_PITCH_CLASSES.has(midi % 12)) continue
@@ -220,29 +239,6 @@ function getPoolForLevel(level) {
   }
 
   return pool
-}
-
-function buildNightmareChord(rootMidi, pool) {
-  const chordTemplates = [
-    { kind: 'triad', intervals: [0, 4, 7] },
-    { kind: 'triad', intervals: [0, 3, 7] },
-    { kind: 'triad', intervals: [0, 3, 6] },
-    { kind: 'triad', intervals: [0, 4, 8] },
-    { kind: 'seventh', intervals: [0, 4, 7, 10] },
-    { kind: 'seventh', intervals: [0, 3, 7, 10] },
-    { kind: 'seventh', intervals: [0, 4, 7, 11] },
-  ]
-  const setPool = new Set(pool)
-
-  for (let tries = 0; tries < 12; tries += 1) {
-    const picked = chordTemplates[Math.floor(Math.random() * chordTemplates.length)]
-    const midis = picked.intervals.map((interval) => rootMidi + interval)
-    if (midis.every((midi) => setPool.has(midi))) {
-      return { midis, kind: picked.kind }
-    }
-  }
-
-  return null
 }
 
 function App() {
@@ -254,13 +250,12 @@ function App() {
   const [showLandingSettings, setShowLandingSettings] = useState(false)
   const [showLandingProfile, setShowLandingProfile] = useState(false)
   const [showLandingLeaderboard, setShowLandingLeaderboard] = useState(false)
+  const [showTempoRunGuide, setShowTempoRunGuide] = useState(false)
   const [landingInputType, setLandingInputType] = useState('audio')
   const [isLoading, setIsLoading] = useState(false)
   const [pendingGameMode, setPendingGameMode] = useState(null)
   const [settings, setSettings] = useState({
-    readSpeed: 3,
     level: 'beginner',
-    movement: 'staggered',
   })
 
   const [noteSpriteMap, setNoteSpriteMap] = useState({})
@@ -1107,30 +1102,16 @@ function App() {
   const spawnNote = (state, nowMs) => {
     if (notePoolRef.current.length === 0) return
     const randomIndex = Math.floor(Math.random() * notePoolRef.current.length)
-    const rootMidi = notePoolRef.current[randomIndex]
-    const shouldSpawnChord = state.level === 'nightmare' && Math.random() < 0.5
-
-    let midis = [rootMidi]
-    let kind = 'single'
-    if (shouldSpawnChord) {
-      const chord = buildNightmareChord(rootMidi, notePoolRef.current)
-      if (chord) {
-        midis = chord.midis
-        kind = chord.kind
-      }
-    }
-
-    const averageMidi = midis.reduce((sum, midi) => sum + midi, 0) / Math.max(1, midis.length)
-    const clef = averageMidi >= 60 ? 'treble' : 'bass'
-    const isStaggered = state.movement === 'staggered'
+    const midi = notePoolRef.current[randomIndex]
+    const clef = midi >= 60 ? 'treble' : 'bass'
+    const isStaggered =
+      state.movementMode === 'mixed' ? Math.random() < 0.5 : state.movementMode === 'staggered'
     const baseX = clamp(10 + Math.random() * 80, 10, 90)
     const startY = isStaggered ? -4 - Math.random() * 10 : 0
 
     state.notes.push({
       id: state.nextId,
-      midis,
-      remainingMidis: [...midis],
-      kind,
+      midi,
       clef,
       y: startY,
       baseX,
@@ -1183,15 +1164,11 @@ function App() {
     const targetIndex = state.notes.findIndex((note) => {
       if (note.destroyAt !== null) return false
       if (!(note.y >= HIT_MIN_Y && note.y < PIANO_LINE_Y)) return false
-      return activeMidis.some((midi) => note.remainingMidis.includes(midi))
+      return activeMidis.includes(note.midi)
     })
 
     if (targetIndex !== -1) {
       const target = state.notes[targetIndex]
-      const matchedMidis = activeMidis.filter((midi) => target.remainingMidis.includes(midi))
-      if (matchedMidis.length === 0) return
-
-      target.remainingMidis = target.remainingMidis.filter((midi) => !matchedMidis.includes(midi))
       state.streak += 1
       state.score += 6 + Math.min(state.streak, 18)
       const distance = Math.sqrt((target.x - 50) ** 2 + (target.y - 92) ** 2)
@@ -1212,11 +1189,8 @@ function App() {
       playSfx(sfxRef.current.bank.shipBlast, 0.51)
       state.nextBulletId += 1
 
-      if (target.remainingMidis.length === 0) {
-        const clearBonus = target.midis.length === 1 ? 6 : target.midis.length * 6
-        state.score += clearBonus
-        target.destroyAt = bulletEndAt
-      }
+      state.score += 6
+      target.destroyAt = bulletEndAt
       if (landingInputType !== 'midi') {
         mic.lastHitAt = nowMs
       }
@@ -1697,6 +1671,7 @@ function App() {
       // Best-effort preload; gameplay can still proceed with fallbacks.
     }
 
+    const difficulty = getDifficultyConfig(settings.level)
     notePoolRef.current = getPoolForLevel(settings.level)
 
     gameStateRef.current = {
@@ -1707,8 +1682,8 @@ function App() {
       streak: 0,
       elapsed: 0,
       level: settings.level,
-      movement: settings.movement,
-      readSpeed: Number(settings.readSpeed),
+      movementMode: difficulty.movement,
+      readSpeed: difficulty.readSpeed,
       notes: [],
       bullets: [],
       particles: [],
@@ -1999,11 +1974,7 @@ function App() {
               ))}
             </div>
             {notes.map((note) => {
-              const previewMidi =
-                note.remainingMidis.find((midi) => getNoteSprite(note.clef, midi, noteSpriteMap)) ??
-                note.remainingMidis[0] ??
-                note.midis[0]
-              const spriteSrc = getNoteSprite(note.clef, previewMidi, noteSpriteMap)
+              const spriteSrc = getNoteSprite(note.clef, note.midi, noteSpriteMap)
 
               return (
                 <article
@@ -2015,13 +1986,10 @@ function App() {
                     <img
                       className="note-sprite"
                       src={spriteSrc}
-                      alt={`${note.clef} ${midiToDisplayName(previewMidi)}`}
+                      alt={`${note.clef} ${midiToDisplayName(note.midi)}`}
                     />
                   ) : (
-                    <span>{midiToDisplayName(previewMidi)}</span>
-                  )}
-                  {note.kind !== 'single' && (
-                    <small className="chord-left">{note.remainingMidis.length}</small>
+                    <span>{midiToDisplayName(note.midi)}</span>
                   )}
                 </article>
               )
@@ -2128,55 +2096,29 @@ function App() {
             <h2>Session Settings</h2>
 
             <label>
-              Read speed (seconds to reach piano)
-              <select
-                value={settings.readSpeed}
-                onChange={(event) =>
-                  setSettings((previous) => ({
-                    ...previous,
-                    readSpeed: Number(event.target.value),
-                  }))
-                }
-              >
-                {READ_SPEED_OPTIONS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}s
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Music level
+              Difficulty level
               <select
                 value={settings.level}
                 onChange={(event) =>
                   setSettings((previous) => ({ ...previous, level: event.target.value }))
                 }
               >
-                {LEVEL_OPTIONS.map((value) => (
+                {DIFFICULTY_OPTIONS.map((value) => (
                   <option key={value} value={value}>
                     {value}
                   </option>
                 ))}
               </select>
             </label>
-
-            <label>
-              Movement style
-              <select
-                value={settings.movement}
-                onChange={(event) =>
-                  setSettings((previous) => ({ ...previous, movement: event.target.value }))
-                }
-              >
-                {MOVEMENT_OPTIONS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="modal-helper">
+              {settings.level === 'beginner'
+                ? '15 second read speed, white notes only, classic movement.'
+                : settings.level === 'intermediate'
+                  ? '10 second read speed, sharps added, classic movement.'
+                  : settings.level === 'advanced'
+                    ? '5 second read speed, full note range, mixed classic and staggered movement.'
+                    : '3 second read speed, full note range, mixed classic and staggered movement.'}
+            </p>
 
             <button
               className="primary"
@@ -2437,7 +2379,7 @@ function App() {
                 className="game-card is-active"
                 onClick={() => {
                   setShowGamePicker(false)
-                  setScreen('tempoRunV2')
+                  setShowTempoRunGuide(true)
                 }}
               >
                 <div
@@ -2514,6 +2456,40 @@ function App() {
                 ? `${midiDeviceName || 'MIDI piano'} connected.`
                 : midiStatusMessage || 'You can still connect a piano from the landing page.'}
             </p>
+          </div>
+        </aside>
+      )}
+
+      {showTempoRunGuide && (
+        <aside className="modal-backdrop" onClick={() => setShowTempoRunGuide(false)}>
+          <div
+            className="modal tempo-run-guide-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowTempoRunGuide(false)}
+            >
+              ×
+            </button>
+            <h2>Temple Run Guide</h2>
+            <img
+              className="tempo-run-guide-image"
+              src={tempoRunGuideImage}
+              alt="Temple Run guide"
+            />
+            <button
+              className="primary"
+              type="button"
+              onClick={() => {
+                setShowTempoRunGuide(false)
+                setScreen('tempoRunV2')
+              }}
+            >
+              Understood
+            </button>
           </div>
         </aside>
       )}
