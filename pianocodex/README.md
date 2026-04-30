@@ -1,16 +1,25 @@
-# React + Vite
+# Piano Drills
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Piano Drills Banner](./src/assets/piano-banner.png)
 
-Currently, two official plugins are available:
+Piano Drills is a web app made to help people learn piano in a fun and interactive way. It turns practice into small arcade-style games so players can work on note reading, ear training, and rhythm.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Games
 
-## React Compiler
+### Note Invaders
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+![Note Invaders Card](./src/assets/arcade_background.PNG)
 
-## Expanding the ESLint configuration
+Practice sight reading by identifying incoming notes before they reach your ship. This mode is designed to help players get faster at recognizing notes on the staff and connecting them to the keyboard. [inspired by zty.pe]
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Play It By Ear
+
+![Play It By Ear Card](./src/assets/play_it_by_ear_card.png)
+
+Train your ear by listening, reacting, and matching what you hear. This game focuses on note recognition through sound so players can build stronger pitch awareness and musical memory. [inspired by Buckshot Roullet]
+
+### Tempo Run
+
+![Tempo Run Card](./src/assets/tempo_run_assets_v2/tempo_run_card.png)
+
+Work on rhythm and timing in a side-scrolling runner game where jumps are tied to musical pulse. This mode helps players develop steadier timing and better rhythmic control in a more playful format.

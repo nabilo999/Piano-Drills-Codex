@@ -1,9 +1,0 @@
-/conductor
-  idle.png
-  listen.png
-  right.png
-  wrong.png
-  reload.png
-  spin.png
-  aim.png
-  fire.png

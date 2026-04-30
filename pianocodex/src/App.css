@@ -859,7 +859,7 @@ p {
   background: transparent;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
   color: #1a1f25;
 }
@@ -884,10 +884,25 @@ p {
   background: linear-gradient(160deg, #f4f6f9, #eef2f6);
 }
 
-.game-card span {
-  font-size: 0.95rem;
-  font-weight: 700;
+.game-card-copy {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
   text-align: center;
+}
+
+.game-card-title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.game-card-subtitle {
+  color: #6f7883;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .ear-game-shell {

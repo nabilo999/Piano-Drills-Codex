@@ -2406,7 +2406,10 @@ function App() {
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
-                <span>Piano Arcade</span>
+                <span className="game-card-copy">
+                  <strong className="game-card-title">Note Invaders</strong>
+                  <small className="game-card-subtitle">Sight Reading</small>
+                </span>
               </button>
 
               <button
@@ -2424,7 +2427,10 @@ function App() {
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
-                <span>Play It By Ear</span>
+                <span className="game-card-copy">
+                  <strong className="game-card-title">Play It By Ear</strong>
+                  <small className="game-card-subtitle">Ear Training</small>
+                </span>
               </button>
 
               <button
@@ -2443,7 +2449,10 @@ function App() {
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
-                <span>Tempo Run</span>
+                <span className="game-card-copy">
+                  <strong className="game-card-title">Temple Run</strong>
+                  <small className="game-card-subtitle">Rhythmic Training</small>
+                </span>
               </button>
             </div>
           </div>
