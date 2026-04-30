@@ -5,12 +5,9 @@ import './App.css'
 import pianoImage from './assets/piano.png'
 import arcadeCardImage from './assets/arcade_background.PNG'
 import playItByEarCardImage from './assets/play_it_by_ear_card.png'
-import leaderboardArcadeIcon from './assets/IC_leaderboard_arcade.png'
-import leaderboardPibeIcon from './assets/IC_leaderboard_PIBE.png'
-import tempoRunCardImage from './assets/tempo_run_assets/tempo_run_card.png'
-import tempoRunV2CardImage from './assets/tempo_run_assets_v2/tempo_run_card.png'
+import tempoRunCardImage from './assets/tempo_run_assets_v2/tempo_run_card.png'
+import underConstructionImage from './assets/under_construction.png'
 
-const TempoRun = lazy(() => import('./TempoRun.jsx'))
 const TempoRunV2 = lazy(() => import('./TempoRunV2.jsx'))
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -23,6 +20,7 @@ const MIC_HISTORY_SIZE = 6
 const MIC_CONFIRM_FRAMES = 3
 const MIC_MAX_JUMP_SEMITONES = 7
 const MIC_NOTE_HOLD_MS = 180
+const MIDI_NOTE_HOLD_MS = 220
 
 const READ_SPEED_OPTIONS = [1, 3, 5, 10, 15]
 const LEVEL_OPTIONS = ['beginner', 'intermediate', 'advanced', 'nightmare']
@@ -37,22 +35,12 @@ const CONDUCTOR_SPRITE_LOADERS = import.meta.glob('./assets/conductor/*.png', {
 const REVOLVER_SPRITE_LOADERS = import.meta.glob('./assets/revolver/*.png', {
   import: 'default',
 })
-const PROFILE_PICTURE_LOADERS = import.meta.glob('./assets/profile_pictures/*.png', {
-  eager: true,
-  import: 'default',
-})
 const EAR_BACKGROUND_LOADERS = import.meta.glob('./assets/background.png', {
   import: 'default',
 })
 const SFX_LOADERS = import.meta.glob('./assets/sfx/*.mp3', {
   import: 'default',
 })
-const PROFILE_PICTURES = Object.values(PROFILE_PICTURE_LOADERS)
-const SHUFFLED_PROFILE_PICTURES = [...PROFILE_PICTURES].sort(() => Math.random() - 0.5)
-const pickProfilePicture = (offset) => {
-  if (SHUFFLED_PROFILE_PICTURES.length === 0) return null
-  return SHUFFLED_PROFILE_PICTURES[offset % SHUFFLED_PROFILE_PICTURES.length]
-}
 const EMPTY_SFX_BANK = {
   correct: null,
   wrong: null,
@@ -96,23 +84,6 @@ const TESTER_NOTE_RANGE = Array.from({ length: 13 }, (_, index) => 60 + index)
 const EAR_FEEDBACK_DELAY_MS = 900
 const EAR_CAPTURE_WINDOW_MS = 260
 const EAR_CAPTURE_MIN_SAMPLES = 3
-const LEADERBOARD_ENTRIES = [
-  {
-    id: 1,
-    name: 'George Smith',
-    score: 540,
-    streak: 12,
-    profileSrc: pickProfilePicture(0),
-  },
-  {
-    id: 2,
-    name: 'Ava Reynolds',
-    score: 497,
-    streak: 9,
-    profileSrc: pickProfilePicture(1),
-  },
-]
-
 function midiToNoteName(midi) {
   const pitchClass = midi % 12
   const octave = Math.floor(midi / 12) - 1
@@ -277,15 +248,15 @@ function buildNightmareChord(rootMidi, pool) {
 function App() {
   const [screen, setScreen] = useState('landing')
   const [showGamePicker, setShowGamePicker] = useState(false)
+  const [showInputPicker, setShowInputPicker] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showPitchTester, setShowPitchTester] = useState(false)
   const [showLandingSettings, setShowLandingSettings] = useState(false)
   const [showLandingProfile, setShowLandingProfile] = useState(false)
   const [showLandingLeaderboard, setShowLandingLeaderboard] = useState(false)
-  const [landingMasterVolume, setLandingMasterVolume] = useState(80)
   const [landingInputType, setLandingInputType] = useState('audio')
   const [isLoading, setIsLoading] = useState(false)
-  const [leaderboardGame, setLeaderboardGame] = useState('arcade')
+  const [pendingGameMode, setPendingGameMode] = useState(null)
   const [settings, setSettings] = useState({
     readSpeed: 3,
     level: 'beginner',
@@ -305,6 +276,9 @@ function App() {
   const [streak, setStreak] = useState(0)
   const [detectedNote, setDetectedNote] = useState('--')
   const [micStatus, setMicStatus] = useState('idle')
+  const [midiStatus, setMidiStatus] = useState('idle')
+  const [midiDeviceName, setMidiDeviceName] = useState('')
+  const [midiStatusMessage, setMidiStatusMessage] = useState('')
   const [earRound, setEarRound] = useState(1)
   const [earBulletsLoaded, setEarBulletsLoaded] = useState(0)
   const [earRevolverShake, setEarRevolverShake] = useState(false)
@@ -339,6 +313,7 @@ function App() {
     audio: null,
     context: null,
   })
+  const fallbackAudioContextRef = useRef(null)
   const lastArcadeUiSyncRef = useRef(0)
   const earUiRef = useRef({
     timerLeft: 10,
@@ -368,6 +343,181 @@ function App() {
     lockedMidiValue: null,
     lockUntil: 0,
   })
+  const midiRef = useRef({
+    access: null,
+    activeNotes: new Map(),
+    pendingPresses: [],
+    heldMidi: null,
+    holdUntil: 0,
+  })
+
+  const clearMidiPerformanceState = () => {
+    const midi = midiRef.current
+    midi.activeNotes.clear()
+    midi.pendingPresses = []
+    midi.heldMidi = null
+    midi.holdUntil = 0
+  }
+
+  const getConnectedMidiInputs = (access = midiRef.current.access) => {
+    if (!access?.inputs) return []
+    return Array.from(access.inputs.values()).filter((input) => input.state === 'connected')
+  }
+
+  const handleMidiMessage = (event) => {
+    const [status = 0, midiNote = 0, velocity = 0] = event.data ?? []
+    const command = status & 0xf0
+    const nowMs = performance.now()
+    const midi = midiRef.current
+
+    if (command === 0x90 && velocity > 0) {
+      midi.activeNotes.set(midiNote, {
+        midi: midiNote,
+        at: nowMs,
+      })
+      midi.pendingPresses.push({
+        midi: midiNote,
+        at: nowMs,
+      })
+      if (midi.pendingPresses.length > 24) {
+        midi.pendingPresses.shift()
+      }
+      midi.heldMidi = midiNote
+      midi.holdUntil = nowMs + MIDI_NOTE_HOLD_MS
+      return
+    }
+
+    if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+      midi.activeNotes.delete(midiNote)
+      midi.heldMidi = midiNote
+      midi.holdUntil = nowMs + MIDI_NOTE_HOLD_MS
+    }
+  }
+
+  const syncMidiConnectionState = (access = midiRef.current.access) => {
+    const inputs = getConnectedMidiInputs(access)
+    const primaryInput = inputs[0] ?? null
+    const primaryName = primaryInput?.name?.trim() || 'MIDI piano'
+
+    setMidiDeviceName(primaryInput?.name?.trim() ?? '')
+
+    if (inputs.length === 0) {
+      setMidiStatus('disconnected')
+      setMidiStatusMessage('No MIDI piano detected. Connect it with USB and try again.')
+      clearMidiPerformanceState()
+      return false
+    }
+
+    setMidiStatus('connected')
+    setMidiStatusMessage(
+      inputs.length === 1
+        ? `${primaryName} connected.`
+        : `${inputs.length} MIDI devices connected. Using ${primaryName}.`,
+    )
+    return true
+  }
+
+  const attachMidiListeners = (access = midiRef.current.access) => {
+    if (!access?.inputs) return
+    for (const input of access.inputs.values()) {
+      input.onmidimessage = null
+    }
+    for (const input of getConnectedMidiInputs(access)) {
+      input.onmidimessage = handleMidiMessage
+    }
+  }
+
+  const ensureMidiConnected = async ({ fromButton = false } = {}) => {
+    if (!navigator.requestMIDIAccess) {
+      setMidiStatus('unsupported')
+      setMidiStatusMessage('This browser does not support Web MIDI.')
+      throw new Error('midi-unsupported')
+    }
+
+    setMidiStatus('checking')
+    setMidiStatusMessage('Checking for connected MIDI devices...')
+
+    try {
+      const access = midiRef.current.access ?? (await navigator.requestMIDIAccess())
+      midiRef.current.access = access
+      access.onstatechange = () => {
+        attachMidiListeners(access)
+        syncMidiConnectionState(access)
+      }
+      attachMidiListeners(access)
+
+      const connected = syncMidiConnectionState(access)
+      if (!connected) {
+        throw new Error('midi-not-found')
+      }
+
+      if (fromButton) {
+        setLandingInputType('midi')
+      }
+
+      return access
+    } catch (error) {
+      if (error instanceof Error && error.message === 'midi-not-found') {
+        throw error
+      }
+
+      setMidiStatus('error')
+      setMidiStatusMessage('MIDI access was blocked. Allow browser access and try again.')
+      throw error
+    }
+  }
+
+  const connectMidiPiano = async () => {
+    setIsLoading(true)
+    setMicStatus('idle')
+    try {
+      await ensureMidiConnected({ fromButton: true })
+    } catch {
+      // UI state already reflects the connection problem.
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const promptForGameInput = (gameMode) => {
+    setPendingGameMode(gameMode)
+    setShowGamePicker(false)
+    setShowInputPicker(true)
+  }
+
+  const closeInputPicker = () => {
+    setShowInputPicker(false)
+    setPendingGameMode(null)
+  }
+
+  const chooseGameInput = async (inputType) => {
+    const selectedGameMode = pendingGameMode
+
+    setLandingInputType(inputType)
+    setMicStatus('idle')
+
+    if (inputType === 'midi') {
+      setIsLoading(true)
+      try {
+        await ensureMidiConnected({ fromButton: true })
+      } catch {
+        setIsLoading(false)
+        return
+      }
+      setIsLoading(false)
+    }
+
+    closeInputPicker()
+
+    if (selectedGameMode === 'arcade') {
+      setShowSettings(true)
+      return
+    }
+
+    if (selectedGameMode === 'ear') {
+      void startEarRun(inputType)
+    }
+  }
 
   const loadNoteSprites = () => {
     if (assetLoadRef.current.notes) return assetLoadRef.current.notes
@@ -577,6 +727,7 @@ function App() {
       lockedMidiValue: null,
       lockUntil: 0,
     }
+    clearMidiPerformanceState()
   }
 
   const clearEarTimeouts = () => {
@@ -821,6 +972,60 @@ function App() {
     }
   }
 
+  const readMidiPitch = () => {
+    const midi = midiRef.current
+    const nowMs = performance.now()
+    const activeNotes = Array.from(midi.activeNotes.values()).sort((left, right) => left.at - right.at)
+
+    if (activeNotes.length > 0) {
+      const primaryMidi = activeNotes[activeNotes.length - 1].midi
+      return {
+        frequency: null,
+        midiValue: primaryMidi,
+        nearestMidi: primaryMidi,
+        centsOff: 0,
+        stable: true,
+        activeMidis: activeNotes.map((note) => note.midi),
+      }
+    }
+
+    if (midi.heldMidi !== null && nowMs < midi.holdUntil) {
+      return {
+        frequency: null,
+        midiValue: midi.heldMidi,
+        nearestMidi: midi.heldMidi,
+        centsOff: 0,
+        stable: true,
+        activeMidis: [midi.heldMidi],
+      }
+    }
+
+    midi.heldMidi = null
+    midi.holdUntil = 0
+    return null
+  }
+
+  const readSelectedPitch = (inputType = landingInputType) => {
+    if (inputType === 'midi') {
+      return readMidiPitch()
+    }
+
+    const pitch = readMicrophonePitch()
+    if (!pitch) return null
+
+    return {
+      ...pitch,
+      activeMidis: pitch.stable ? [pitch.nearestMidi] : [],
+    }
+  }
+
+  const consumeMidiPresses = (nowMs) => {
+    const midi = midiRef.current
+    const recentPresses = midi.pendingPresses.filter((press) => nowMs - press.at <= 600)
+    midi.pendingPresses = []
+    return [...new Set(recentPresses.map((press) => press.midi))]
+  }
+
   const pitchTesterLoop = () => {
     const pitch = readMicrophonePitch()
 
@@ -876,8 +1081,16 @@ function App() {
     }
 
     const mic = micRef.current
-    if (!mic.audioContext) return
-    const audioContext = mic.audioContext
+    const AudioContext = window.AudioContext || window.webkitAudioContext
+    const audioContext =
+      mic.audioContext ??
+      fallbackAudioContextRef.current ??
+      (AudioContext ? new AudioContext() : null)
+    if (!audioContext) return
+    fallbackAudioContextRef.current = audioContext
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().catch(() => {})
+    }
     const oscillator = audioContext.createOscillator()
     const gain = audioContext.createGain()
     oscillator.type = 'sine'
@@ -935,7 +1148,7 @@ function App() {
 
   const detectAndApplyHit = (state, nowMs) => {
     const mic = micRef.current
-    const pitch = readMicrophonePitch()
+    const pitch = readSelectedPitch(state.inputType)
 
     if (!pitch) {
       if (nowMs - mic.lastNoteUpdate > 120) {
@@ -958,17 +1171,27 @@ function App() {
       mic.lastNoteUpdate = nowMs
     }
 
-    if (nowMs - mic.lastHitAt < 220) return
+    const activeMidis =
+      state.inputType === 'midi'
+        ? consumeMidiPresses(nowMs)
+        : nowMs - mic.lastHitAt >= 220
+          ? [pitch.nearestMidi]
+          : []
+
+    if (activeMidis.length === 0) return
 
     const targetIndex = state.notes.findIndex((note) => {
       if (note.destroyAt !== null) return false
       if (!(note.y >= HIT_MIN_Y && note.y < PIANO_LINE_Y)) return false
-      return note.remainingMidis.includes(pitch.nearestMidi)
+      return activeMidis.some((midi) => note.remainingMidis.includes(midi))
     })
 
     if (targetIndex !== -1) {
       const target = state.notes[targetIndex]
-      target.remainingMidis = target.remainingMidis.filter((midi) => midi !== pitch.nearestMidi)
+      const matchedMidis = activeMidis.filter((midi) => target.remainingMidis.includes(midi))
+      if (matchedMidis.length === 0) return
+
+      target.remainingMidis = target.remainingMidis.filter((midi) => !matchedMidis.includes(midi))
       state.streak += 1
       state.score += 6 + Math.min(state.streak, 18)
       const distance = Math.sqrt((target.x - 50) ** 2 + (target.y - 92) ** 2)
@@ -994,7 +1217,9 @@ function App() {
         state.score += clearBonus
         target.destroyAt = bulletEndAt
       }
-      mic.lastHitAt = nowMs
+      if (landingInputType !== 'midi') {
+        mic.lastHitAt = nowMs
+      }
     }
   }
 
@@ -1189,7 +1414,7 @@ function App() {
         setEarTimerLeft(secondsLeft)
       }
 
-      const pitch = readMicrophonePitch()
+      const pitch = readSelectedPitch(state.inputType)
       if (pitch?.stable) {
         const label = midiToSimpleLabel(pitch.nearestMidi)
         if (
@@ -1204,7 +1429,7 @@ function App() {
           state.captureStartedAt = nowMs
           state.heardMidis = []
         }
-        state.heardMidis.push(pitch.nearestMidi)
+        state.heardMidis.push(...(pitch.activeMidis.length > 0 ? pitch.activeMidis : [pitch.nearestMidi]))
       }
 
       const captureIsReady =
@@ -1445,13 +1670,17 @@ function App() {
     rafRef.current = requestAnimationFrame(gameLoop)
   }
 
-  const startRun = async () => {
+  const startRun = async (inputTypeOverride = null) => {
+    const selectedInputType = inputTypeOverride ?? landingInputType
     setIsLoading(true)
     ensureAudioUnlocked()
     stopGameLoop()
     stopPitchTesterLoop()
     stopAudio()
     setShowPitchTester(false)
+    if (selectedInputType === 'midi') {
+      setMicStatus('idle')
+    }
 
     setLives(3)
     setScore(0)
@@ -1472,6 +1701,7 @@ function App() {
 
     gameStateRef.current = {
       type: 'arcade',
+      inputType: selectedInputType,
       lives: 3,
       score: 0,
       streak: 0,
@@ -1492,12 +1722,19 @@ function App() {
     }
 
     try {
-      await setupMicrophone()
+      if (selectedInputType === 'midi') {
+        await ensureMidiConnected()
+        clearMidiPerformanceState()
+      } else {
+        await setupMicrophone()
+      }
       setScreen('game')
       lastFrameRef.current = 0
       rafRef.current = requestAnimationFrame(gameLoop)
     } catch {
-      setMicStatus('error')
+      if (selectedInputType !== 'midi') {
+        setMicStatus('error')
+      }
       setScreen('landing')
       setShowSettings(false)
     } finally {
@@ -1505,7 +1742,8 @@ function App() {
     }
   }
 
-  const startEarRun = async () => {
+  const startEarRun = async (inputTypeOverride = null) => {
+    const selectedInputType = inputTypeOverride ?? landingInputType
     setIsLoading(true)
     ensureAudioUnlocked()
     stopGameLoop()
@@ -1513,6 +1751,9 @@ function App() {
     stopAudio()
     clearEarTimeouts()
     stopHeartbeatLoop()
+    if (selectedInputType === 'midi') {
+      setMicStatus('idle')
+    }
 
     setDetectedNote('--')
     setEarRound(1)
@@ -1541,6 +1782,7 @@ function App() {
 
     gameStateRef.current = {
       type: 'ear',
+      inputType: selectedInputType,
       mode: 'booting',
       round: 1,
       highestRound: 1,
@@ -1556,7 +1798,12 @@ function App() {
     }
 
     try {
-      await setupMicrophone()
+      if (selectedInputType === 'midi') {
+        await ensureMidiConnected()
+        clearMidiPerformanceState()
+      } else {
+        await setupMicrophone()
+      }
       try {
         await initializePianoSampler()
       } catch {
@@ -1567,7 +1814,9 @@ function App() {
       startEarRound(gameStateRef.current)
       rafRef.current = requestAnimationFrame(earGameLoop)
     } catch {
-      setMicStatus('error')
+      if (selectedInputType !== 'midi') {
+        setMicStatus('error')
+      }
       setScreen('landing')
       setShowGamePicker(false)
     } finally {
@@ -1576,16 +1825,76 @@ function App() {
   }
 
   useEffect(() => {
+    const animationFrameRef = rafRef
+    const pitchTesterFrameRef = testerRafRef
+    const timeoutQueueRef = earTimeoutsRef
+    const microphoneStateRef = micRef
+    const midiStateRef = midiRef
+    const heartbeatStateRef = sfxRef
+    const samplerStateRef = toneRef
+    const oscillatorContextRef = fallbackAudioContextRef
+
     return () => {
-      stopGameLoop()
-      stopPitchTesterLoop()
-      stopAudio()
-      stopHeartbeatLoop()
-      if (toneRef.current.sampler) {
-        toneRef.current.sampler.dispose()
-        toneRef.current.sampler = null
-        toneRef.current.ready = false
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
       }
+      if (pitchTesterFrameRef.current) {
+        cancelAnimationFrame(pitchTesterFrameRef.current)
+        pitchTesterFrameRef.current = null
+      }
+      for (const timeoutId of timeoutQueueRef.current) {
+        clearTimeout(timeoutId)
+      }
+      timeoutQueueRef.current = []
+
+      const mic = microphoneStateRef.current
+      if (mic.stream) {
+        mic.stream.getTracks().forEach((track) => track.stop())
+      }
+      mic.audioContext?.close()
+      microphoneStateRef.current = {
+        stream: null,
+        audioContext: null,
+        analyser: null,
+        data: null,
+        lastHitAt: 0,
+        lastNoteUpdate: 0,
+        pitchHistory: [],
+        lockedMidi: null,
+        lockedMidiValue: null,
+        lockUntil: 0,
+      }
+
+      const midi = midiStateRef.current
+      midi.activeNotes.clear()
+      midi.pendingPresses = []
+      midi.heldMidi = null
+      midi.holdUntil = 0
+      if (midi.access?.inputs) {
+        for (const input of midi.access.inputs.values()) {
+          input.onmidimessage = null
+        }
+        midi.access.onstatechange = null
+      }
+
+      const heartbeat = heartbeatStateRef.current.heartbeat
+      if (heartbeat) {
+        heartbeat.pause()
+        heartbeat.currentTime = 0
+      }
+      heartbeatStateRef.current.heartbeat = null
+      heartbeatStateRef.current.heartbeatMode = null
+
+      const samplerState = samplerStateRef.current
+      if (samplerState.sampler) {
+        samplerState.sampler.dispose()
+        samplerState.sampler = null
+        samplerState.ready = false
+      }
+
+      oscillatorContextRef.current?.close?.().catch(() => {})
+      oscillatorContextRef.current = null
     }
   }, [])
 
@@ -1601,7 +1910,6 @@ function App() {
         screen === 'game' ||
         screen === 'earGame' ||
         screen === 'earGameOver' ||
-        screen === 'tempoRun' ||
         screen === 'tempoRunV2'
           ? 'game-mode'
           : 'menu-mode'
@@ -1623,12 +1931,31 @@ function App() {
             <button className="secondary" onClick={() => setShowLandingLeaderboard(true)}>
               <span className="landing-button-label">Leaderboard</span>
             </button>
-            <button className="secondary" type="button">
-              <span className="landing-button-label">Connect Piano</span>
-            </button>
+            <div className="landing-connect-slot">
+              <button
+                className="secondary landing-connect-button"
+                type="button"
+                onClick={connectMidiPiano}
+              >
+                <span className="landing-button-label">Connect Piano</span>
+              </button>
+              {midiStatus !== 'idle' && midiStatus !== 'checking' && (
+                <span
+                  className={`landing-piano-indicator ${
+                    midiStatus === 'connected' ? 'is-connected' : 'is-disconnected'
+                  }`}
+                  aria-label={
+                    midiStatus === 'connected' ? 'Piano connected' : 'Piano not connected'
+                  }
+                  title={midiStatusMessage || undefined}
+                >
+                  {midiStatus === 'connected' ? '✓' : '✕'}
+                </span>
+              )}
+            </div>
           </div>
           {micStatus === 'error' && (
-            <p className="error">Microphone permission is required to play.</p>
+            <p className="error">Microphone permission is required to play with audio input.</p>
           )}
         </main>
       )}
@@ -1639,7 +1966,7 @@ function App() {
             <span>Lives: {lives}</span>
             <span>Score: {score}</span>
             <span>Streak: {streak}</span>
-            <span>Mic: {detectedNote}</span>
+            <span>{landingInputType === 'midi' ? 'Piano' : 'Mic'}: {detectedNote}</span>
           </header>
 
           <section className="lane" aria-label="Music lane">
@@ -1771,20 +2098,6 @@ function App() {
             </button>
           </div>
         </main>
-      )}
-
-      {screen === 'tempoRun' && (
-        <Suspense
-          fallback={
-            <div className="loading-backdrop" aria-busy="true" aria-live="polite">
-              <div className="loading-card" role="status" aria-label="Loading">
-                <div className="loading-spinner" />
-              </div>
-            </div>
-          }
-        >
-          <TempoRun onExit={() => setScreen('landing')} />
-        </Suspense>
       )}
 
       {screen === 'tempoRunV2' && (
@@ -1930,16 +2243,6 @@ function App() {
             </button>
             <h2>Settings</h2>
             <div className="modal-divider" />
-            <label className="modal-field">
-              <span>Master Volume</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={landingMasterVolume}
-                onChange={(event) => setLandingMasterVolume(Number(event.target.value))}
-              />
-            </label>
             <div className="modal-field">
               <span>Input Type</span>
               <div className="toggle-group">
@@ -1957,7 +2260,13 @@ function App() {
                     landingInputType === 'midi' ? 'is-active' : ''
                   }`}
                   type="button"
-                  onClick={() => setLandingInputType('midi')}
+                  onClick={() => {
+                    setLandingInputType('midi')
+                    setMicStatus('idle')
+                    if (midiStatus === 'idle') {
+                      setMidiStatusMessage('Click Connect Piano to detect a USB MIDI keyboard.')
+                    }
+                  }}
                 >
                   MIDI
                 </button>
@@ -1986,7 +2295,13 @@ function App() {
             </button>
             <h2>Profile</h2>
             <div className="modal-divider" />
-            <p className="modal-placeholder">To be implemented.</p>
+            <div className="under-construction-wrap">
+              <img
+                className="under-construction-image"
+                src={underConstructionImage}
+                alt="Under construction"
+              />
+            </div>
           </div>
         </aside>
       )}
@@ -2005,17 +2320,25 @@ function App() {
             <header className="leaderboard-header">
               <h2>Leaderboard</h2>
               <div className="leaderboard-divider" />
-              <div className="leaderboard-filter">
-                <select
-                  className="leaderboard-select"
-                  value={leaderboardGame}
-                  onChange={(event) => setLeaderboardGame(event.target.value)}
-                >
-                  <option value="arcade">Piano Arcade</option>
-                  <option value="ear">Play It By Ear</option>
-                </select>
-              </div>
             </header>
+            <div className="under-construction-wrap under-construction-wrap--leaderboard">
+              <img
+                className="under-construction-image"
+                src={underConstructionImage}
+                alt="Under construction"
+              />
+            </div>
+            {/*
+            <div className="leaderboard-filter">
+              <select
+                className="leaderboard-select"
+                value={leaderboardGame}
+                onChange={(event) => setLeaderboardGame(event.target.value)}
+              >
+                <option value="arcade">Piano Arcade</option>
+                <option value="ear">Play It By Ear</option>
+              </select>
+            </div>
             <div className="leaderboard-list" role="list">
               {LEADERBOARD_ENTRIES.map((entry) => (
                 <article key={entry.id} className="leaderboard-entry" role="listitem">
@@ -2050,6 +2373,7 @@ function App() {
                 </article>
               ))}
             </div>
+            */}
           </div>
         </aside>
       )}
@@ -2070,8 +2394,7 @@ function App() {
               <button
                 className="game-card is-active"
                 onClick={() => {
-                  setShowGamePicker(false)
-                  setShowSettings(true)
+                  promptForGameInput('arcade')
                 }}
               >
                 <div
@@ -2089,7 +2412,7 @@ function App() {
               <button
                 className="game-card is-active"
                 onClick={() => {
-                  startEarRun()
+                  promptForGameInput('ear')
                 }}
               >
                 <div
@@ -2108,7 +2431,7 @@ function App() {
                 className="game-card is-active"
                 onClick={() => {
                   setShowGamePicker(false)
-                  setScreen('tempoRun')
+                  setScreen('tempoRunV2')
                 }}
               >
                 <div
@@ -2122,26 +2445,66 @@ function App() {
                 />
                 <span>Tempo Run</span>
               </button>
+            </div>
+          </div>
+        </aside>
+      )}
 
+      {showInputPicker && (
+        <aside className="modal-backdrop" onClick={closeInputPicker}>
+          <div
+            className="modal input-picker-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={closeInputPicker}
+            >
+              ×
+            </button>
+            <h2>Choose Input</h2>
+            <p className="modal-helper">
+              {pendingGameMode === 'arcade'
+                ? 'Pick the input you want to use for Piano Arcade before the run starts.'
+                : 'Pick the input you want to use for Play It By Ear before the round starts.'}
+            </p>
+            <div className="input-picker-actions">
               <button
-                className="game-card is-active"
-                onClick={() => {
-                  setShowGamePicker(false)
-                  setScreen('tempoRunV2')
-                }}
+                className="input-picker-button"
+                type="button"
+                onClick={() => chooseGameInput('audio')}
               >
-                <div
-                  className="game-card-art"
-                  style={{
-                    backgroundImage: `url(${tempoRunV2CardImage})`,
-                    backgroundSize: 'contain',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
-                <span>Tempo Run Side Scroll</span>
+                <span className="input-picker-label">Microphone</span>
+                <span className="input-picker-caption">Use your mic to detect notes.</span>
+              </button>
+              <button
+                className="input-picker-button is-dark"
+                type="button"
+                onClick={() => chooseGameInput('midi')}
+              >
+                <span className="input-picker-label">MIDI Piano</span>
+                <span className="input-picker-caption">
+                  {midiStatus === 'connected'
+                    ? `${midiDeviceName || 'Keyboard'} is ready.`
+                    : 'Use your USB MIDI keyboard.'}
+                </span>
               </button>
             </div>
+            <p
+              className={`modal-helper input-picker-status ${
+                midiStatus === 'connected'
+                  ? 'is-success'
+                  : midiStatus === 'checking'
+                    ? 'is-info'
+                    : ''
+              }`.trim()}
+            >
+              {midiStatus === 'connected'
+                ? `${midiDeviceName || 'MIDI piano'} connected.`
+                : midiStatusMessage || 'You can still connect a piano from the landing page.'}
+            </p>
           </div>
         </aside>
       )}

@@ -77,6 +77,11 @@ select {
   margin-top: 20px;
 }
 
+.landing-connect-slot {
+  position: relative;
+  width: 30vw;
+}
+
 .landing-buttons .test-button {
   margin-top: 0;
 }
@@ -204,6 +209,38 @@ p {
   border: none;
 }
 
+.landing-connect-button {
+  --btn-bg: #ffffff;
+  --btn-fg: #0f1113;
+  width: 100%;
+}
+
+.landing-piano-indicator {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 10px);
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 18px rgba(15, 17, 19, 0.12);
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.landing-piano-indicator.is-connected {
+  color: #1f9a45;
+}
+
+.landing-piano-indicator.is-disconnected {
+  color: #c53a3a;
+}
+
 .landing-buttons > button:nth-child(odd) {
   --btn-bg: #ffffff;
   --btn-fg: #0f1113;
@@ -227,6 +264,29 @@ p {
 .error {
   margin-top: 12px;
   color: #b62525;
+}
+
+.landing-status {
+  max-width: min(560px, 82vw);
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  font-weight: 600;
+  line-height: 1.45;
+  box-shadow: 0 10px 24px rgba(15, 17, 19, 0.08);
+}
+
+.landing-status.is-success {
+  color: #1f6d43;
+}
+
+.landing-status.is-info {
+  color: #335776;
+}
+
+.landing-status.is-error {
+  color: #9b2f2f;
 }
 
 .game {
@@ -391,13 +451,20 @@ p {
 
 .landing-modal {
   width: min(360px, 90vw);
-  min-height: 480px;
-  gap: 5px;
+  min-height: auto;
+  gap: 10px;
+  padding: 22px 20px 20px;
+}
+
+.input-picker-modal {
+  width: min(460px, 94vw);
+  gap: 16px;
 }
 
 .landing-modal h2 {
   text-align: center;
   margin-bottom: 0;
+  font-size: 1.25rem;
 }
 
 .landing-modal .modal-divider {
@@ -405,7 +472,11 @@ p {
 }
 
 .landing-modal .modal-field span {
-  font-weight: 700;
+  color: #6a737d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .landing-modal input[type='range'] {
@@ -460,7 +531,12 @@ p {
 
 .landing-modal .modal-button {
   margin-top: 0;
-  font-size: 0.95rem;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f7f8fa;
+  font-size: 0.92rem;
+  text-align: center;
 }
 
 .modal-button:hover {
@@ -495,26 +571,129 @@ p {
 .toggle-group {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .toggle-button {
-  border: 1px solid #0f1113;
-  background: #ffffff;
-  padding: 10px 12px;
+  border: 1px solid #cfd5dc;
+  background: #f7f8fa;
+  padding: 9px 12px;
   font-weight: 700;
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: 12px;
+  color: #303741;
+  font-size: 0.9rem;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 .toggle-button.is-active {
+  border-color: #0f1113;
   background: #0f1113;
   color: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 17, 19, 0.16);
+}
+
+.toggle-button:hover {
+  border-color: #0f1113;
+  transform: translateY(-1px);
 }
 
 .modal-placeholder {
   color: #4f5761;
   font-size: 0.95rem;
+}
+
+.under-construction-wrap {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 12px 0;
+}
+
+.under-construction-wrap--leaderboard {
+  min-height: min(560px, 58vh);
+}
+
+.under-construction-image {
+  width: min(280px, 100%);
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border: 6px solid #000000;
+  border-radius: 18px;
+  box-sizing: border-box;
+}
+
+.modal-helper {
+  margin: 0;
+  color: #4f5761;
+  line-height: 1.45;
+}
+
+.input-picker-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.input-picker-button {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  align-content: start;
+  padding: 12px 14px;
+  border: 1px solid #cfd5de;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #11161b;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15, 17, 19, 0.06);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.input-picker-button:hover {
+  transform: translateY(-1px);
+  border-color: #11161b;
+  box-shadow: 0 12px 24px rgba(15, 17, 19, 0.1);
+}
+
+.input-picker-button.is-dark {
+  background: linear-gradient(180deg, #151a20 0%, #0e1217 100%);
+  color: #f7fbff;
+  border-color: #0e1217;
+}
+
+.input-picker-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.input-picker-caption {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: #566473;
+}
+
+.input-picker-button.is-dark .input-picker-caption {
+  color: rgba(247, 251, 255, 0.76);
+}
+
+.input-picker-status.is-success {
+  color: #1f6d43;
+}
+
+.input-picker-status.is-info {
+  color: #335776;
 }
 
 .modal label {
@@ -917,6 +1096,10 @@ p {
     width: 18.9vw;
   }
 
+  .landing-connect-button {
+    width: 100%;
+  }
+
   .tester-readout {
     flex-direction: column;
     align-items: flex-start;
@@ -932,6 +1115,11 @@ p {
   }
 
   .game-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-picker-actions {
+    display: grid;
     grid-template-columns: 1fr;
   }
 
@@ -964,7 +1152,7 @@ p {
   }
 }
 .landing-modal .modal-field {
-  gap: 5px;
+  gap: 6px;
 }
 
 .leaderboard-modal {

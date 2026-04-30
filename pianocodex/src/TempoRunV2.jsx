@@ -38,7 +38,7 @@ const AIR_SPIN_FRAME_MS = 70
 const LOSE_FALL_FRAME_MS = 120
 const LOSE_FALL_FRAME_COUNT = 4
 const LOSE_FALL_TOTAL_MS = LOSE_FALL_FRAME_MS * LOSE_FALL_FRAME_COUNT
-const LOSE_FALL_FORWARD_PERCENT = 8
+const LOSE_FALL_FORWARD_PERCENT = 40
 const HURDLE_RENDER_HEIGHT = 96
 const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
@@ -610,7 +610,7 @@ function TempoRunV2({ onExit }) {
         const loseStartXPercent = getRunnerXPercent(state, nowMs)
         const hurdleTrackXPercent = beatToTrackPercent(hurdle.beat, missBeat)
         const loseEndXPercent = clamp(
-          Math.max(loseStartXPercent + 3, hurdleTrackXPercent + 2),
+          Math.max(loseStartXPercent + 11, hurdleTrackXPercent + 8),
           loseStartXPercent,
           loseStartXPercent + LOSE_FALL_FORWARD_PERCENT,
         )

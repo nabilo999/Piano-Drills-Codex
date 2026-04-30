@@ -302,6 +302,11 @@
   image-rendering: pixelated;
 }
 
+.tempo-run-v2-runner.is-losing .tempo-run-v2-runner-sprite,
+.tempo-run-v2-runner.is-losing .tempo-run-v2-runner-afterimage {
+  object-position: center bottom;
+}
+
 .tempo-run-v2-runner-afterimage {
   opacity: 0.16;
   filter: blur(6px);
