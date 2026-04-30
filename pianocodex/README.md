@@ -1,7 +1,7 @@
 # Piano Drills
 
 <p align="center">
-  <img src="./src/assets/Readme_banner.png" alt="Piano Drills Banner" width="360" />
+  <img src="./src/assets/Readme_banner.png" alt="Piano Drills Banner" width="100%" />
 </p>
 
 Piano Drills is a web app made to help people learn piano in a fun and interactive way. It turns practice into small arcade-style games so players can work on note reading, ear training, and rhythm.
