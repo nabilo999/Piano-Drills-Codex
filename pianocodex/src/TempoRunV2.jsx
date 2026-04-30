@@ -10,11 +10,14 @@ const TEMPO_RUN_V2_ASSET_URLS = Object.fromEntries(
   ).map(([path, url]) => [path.split('/').pop(), url]),
 )
 
-const BPM = 100
-const SECONDS_PER_BEAT = 60 / BPM
-const PERFECT_WINDOW = 0.055
-const GOOD_WINDOW = 0.145
-const MISS_WINDOW = 0.24
+const BPM = 90
+const QUARTER_NOTE_MS = 60000 / BPM
+const HALF_NOTE_MS = QUARTER_NOTE_MS * 2
+const WHOLE_NOTE_MS = QUARTER_NOTE_MS * 4
+const SECONDS_PER_BEAT = QUARTER_NOTE_MS / 1000
+const PERFECT_WINDOW = 0.07
+const GOOD_WINDOW = 0.18
+const MISS_WINDOW = 0.28
 const UI_SYNC_MS = 1000 / 30
 const INPUT_DEBOUNCE_MS = 75
 const JUMP_ASCEND_MS = 170
@@ -44,7 +47,8 @@ const VIEW_BEATS_BEHIND = 2.8
 const VIEW_BEATS_AHEAD = 8
 const VIEW_BEATS_TOTAL = VIEW_BEATS_BEHIND + VIEW_BEATS_AHEAD
 const START_LEAD_BEATS = 4
-const COURSE_REPEATS = 3
+const VISUAL_HURDLE_LEAD_MS = 150
+const VISUAL_HURDLE_LEAD_BEATS = VISUAL_HURDLE_LEAD_MS / QUARTER_NOTE_MS
 const MAX_LIVES = 3
 const RUNNER_TRACK_X_PERCENT = (VIEW_BEATS_BEHIND / VIEW_BEATS_TOTAL) * 100
 const INTRO_RUN_IN_MS = 1120
@@ -116,34 +120,71 @@ const RHYTHM_TYPES = [
 ]
 
 const RHYTHM_BY_KEY = Object.fromEntries(RHYTHM_TYPES.map((rhythm) => [rhythm.key, rhythm]))
-const COURSE_PATTERN = [
-  'quarter',
-  'eighth',
-  'eighth',
-  'rest',
-  'sixteenth',
-  'sixteenth',
-  'quarter',
-  'half',
-  'rest',
-  'quarter',
-  'quarter',
-  'eighth',
-  'eighth',
-  'whole',
-  'rest',
-  'sixteenth',
-  'sixteenth',
-  'sixteenth',
-  'sixteenth',
-  'quarter',
-  'half',
-  'rest',
-  'eighth',
-  'eighth',
-  'quarter',
-  'rest',
+const MARY_LINE_A = [
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  HALF_NOTE_MS,
 ]
+
+const MARY_LINE_B = [
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  HALF_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  HALF_NOTE_MS,
+]
+
+const MARY_LINE_C = [
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+]
+
+const MARY_LINE_D = [
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  QUARTER_NOTE_MS,
+  WHOLE_NOTE_MS,
+]
+
+const TEMPO_ONE_COURSE = {
+  tempo: BPM,
+  pattern: [
+    // Mary had a little lamb
+    ...MARY_LINE_A,
+    // Little lamb, little lamb
+    ...MARY_LINE_B,
+    // Mary had a little lamb
+    ...MARY_LINE_C,
+    // Its fleece was white as snow
+    ...MARY_LINE_D,
+    // And everywhere that Mary went
+    ...MARY_LINE_A,
+    // Mary went, Mary went
+    ...MARY_LINE_B,
+    // And everywhere that Mary went
+    ...MARY_LINE_C,
+    // The lamb was sure to go
+    ...MARY_LINE_D,
+  ],
+}
+
+const RHYTHM_KEY_BY_DELAY_MS = new Map([
+  [QUARTER_NOTE_MS, 'quarter'],
+  [HALF_NOTE_MS, 'half'],
+  [WHOLE_NOTE_MS, 'whole'],
+])
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value))
@@ -174,25 +215,25 @@ function createCourse() {
   let beatCursor = START_LEAD_BEATS
   const hurdles = []
 
-  for (let repeat = 0; repeat < COURSE_REPEATS; repeat += 1) {
-    for (let index = 0; index < COURSE_PATTERN.length; index += 1) {
-      const rhythmKey = COURSE_PATTERN[index]
-      const rhythm = RHYTHM_BY_KEY[rhythmKey]
+  for (let index = 0; index < TEMPO_ONE_COURSE.pattern.length; index += 1) {
+    const delayMs = TEMPO_ONE_COURSE.pattern[index]
+    const rhythmKey = RHYTHM_KEY_BY_DELAY_MS.get(delayMs)
 
-      if (rhythmKey !== 'rest') {
-        hurdles.push({
-          id: `hurdle-${repeat}-${index}`,
-          rhythmKey,
-          beat: beatCursor,
-          hitTime: beatCursor * SECONDS_PER_BEAT,
-          state: 'pending',
-          judgedAt: null,
-          result: null,
-        })
-      }
-
-      beatCursor += rhythm.beats
+    if (!rhythmKey) {
+      throw new Error(`Unsupported course duration: ${delayMs}ms`)
     }
+
+    hurdles.push({
+      id: `hurdle-${index}`,
+      rhythmKey,
+      beat: beatCursor,
+      hitTime: beatCursor * SECONDS_PER_BEAT,
+      state: 'pending',
+      judgedAt: null,
+      result: null,
+    })
+
+    beatCursor += delayMs / QUARTER_NOTE_MS
   }
 
   return {
@@ -814,7 +855,7 @@ function TempoRunV2({ onExit }) {
         })
         .map((hurdle) => ({
           ...hurdle,
-          leftPercent: beatToTrackPercent(hurdle.beat, currentBeat),
+          leftPercent: beatToTrackPercent(hurdle.beat + VISUAL_HURDLE_LEAD_BEATS, currentBeat),
         }))
     : []
 
