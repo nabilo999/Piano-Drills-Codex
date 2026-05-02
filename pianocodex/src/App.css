@@ -461,18 +461,18 @@ p {
   gap: 16px;
 }
 
-.tempo-run-guide-modal {
+.game-guide-modal {
   width: min(900px, 96vw);
   gap: 16px;
   padding: 20px;
 }
 
-.tempo-run-guide-modal h2 {
+.game-guide-modal h2 {
   text-align: center;
   margin-bottom: 0;
 }
 
-.tempo-run-guide-image {
+.game-guide-image {
   display: block;
   width: 100%;
   height: auto;

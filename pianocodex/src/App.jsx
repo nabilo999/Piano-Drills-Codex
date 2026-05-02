@@ -5,11 +5,27 @@ import './App.css'
 import pianoImage from './assets/piano.png'
 import arcadeCardImage from './assets/arcade_background.PNG'
 import playItByEarCardImage from './assets/play_it_by_ear_card.png'
+import noteInvaderGuideImage from './assets/note_invader_guide.png'
+import playItByEarGuideImage from './assets/play_it_by_ear_guide.png'
 import tempoRunCardImage from './assets/tempo_run_assets_v2/tempo_run_card.png'
 import tempoRunGuideImage from './assets/tempo_run_guide.png'
 import underConstructionImage from './assets/under_construction.png'
 
 const TempoRunV2 = lazy(() => import('./TempoRunV2.jsx'))
+const GAME_GUIDES = {
+  arcade: {
+    title: 'Note Invaders Guide',
+    image: noteInvaderGuideImage,
+  },
+  ear: {
+    title: 'Play It By Ear Guide',
+    image: playItByEarGuideImage,
+  },
+  tempoRunV2: {
+    title: 'Temple Run Guide',
+    image: tempoRunGuideImage,
+  },
+}
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 const WHITE_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11])
@@ -250,7 +266,8 @@ function App() {
   const [showLandingSettings, setShowLandingSettings] = useState(false)
   const [showLandingProfile, setShowLandingProfile] = useState(false)
   const [showLandingLeaderboard, setShowLandingLeaderboard] = useState(false)
-  const [showTempoRunGuide, setShowTempoRunGuide] = useState(false)
+  const [activeGameGuide, setActiveGameGuide] = useState(null)
+  const [guideInputType, setGuideInputType] = useState(null)
   const [landingInputType, setLandingInputType] = useState('audio')
   const [isLoading, setIsLoading] = useState(false)
   const [pendingGameMode, setPendingGameMode] = useState(null)
@@ -480,6 +497,38 @@ function App() {
     setShowInputPicker(true)
   }
 
+  const openGameGuide = (gameMode) => {
+    setShowGamePicker(false)
+    setGuideInputType(null)
+    setActiveGameGuide(gameMode)
+  }
+
+  const closeGameGuide = () => {
+    setActiveGameGuide(null)
+    setGuideInputType(null)
+  }
+
+  const continueFromGameGuide = () => {
+    const selectedGuide = activeGameGuide
+    const selectedInputType = guideInputType ?? landingInputType
+    setActiveGameGuide(null)
+    setGuideInputType(null)
+
+    if (selectedGuide === 'tempoRunV2') {
+      setScreen('tempoRunV2')
+      return
+    }
+
+    if (selectedGuide === 'arcade') {
+      setShowSettings(true)
+      return
+    }
+
+    if (selectedGuide === 'ear') {
+      void startEarRun(selectedInputType)
+    }
+  }
+
   const closeInputPicker = () => {
     setShowInputPicker(false)
     setPendingGameMode(null)
@@ -505,12 +554,14 @@ function App() {
     closeInputPicker()
 
     if (selectedGameMode === 'arcade') {
-      setShowSettings(true)
+      setGuideInputType(inputType)
+      setActiveGameGuide('arcade')
       return
     }
 
     if (selectedGameMode === 'ear') {
-      void startEarRun(inputType)
+      setGuideInputType(inputType)
+      setActiveGameGuide('ear')
     }
   }
 
@@ -2378,8 +2429,7 @@ function App() {
               <button
                 className="game-card is-active"
                 onClick={() => {
-                  setShowGamePicker(false)
-                  setShowTempoRunGuide(true)
+                  openGameGuide('tempoRunV2')
                 }}
               >
                 <div
@@ -2460,33 +2510,30 @@ function App() {
         </aside>
       )}
 
-      {showTempoRunGuide && (
-        <aside className="modal-backdrop" onClick={() => setShowTempoRunGuide(false)}>
+      {activeGameGuide && (
+        <aside className="modal-backdrop" onClick={closeGameGuide}>
           <div
-            className="modal tempo-run-guide-modal"
+            className="modal game-guide-modal"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               className="modal-close"
               type="button"
               aria-label="Close"
-              onClick={() => setShowTempoRunGuide(false)}
+              onClick={closeGameGuide}
             >
               ×
             </button>
-            <h2>Temple Run Guide</h2>
+            <h2>{GAME_GUIDES[activeGameGuide].title}</h2>
             <img
-              className="tempo-run-guide-image"
-              src={tempoRunGuideImage}
-              alt="Temple Run guide"
+              className="game-guide-image"
+              src={GAME_GUIDES[activeGameGuide].image}
+              alt={GAME_GUIDES[activeGameGuide].title}
             />
             <button
               className="primary"
               type="button"
-              onClick={() => {
-                setShowTempoRunGuide(false)
-                setScreen('tempoRunV2')
-              }}
+              onClick={continueFromGameGuide}
             >
               Understood
             </button>
