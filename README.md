@@ -5,6 +5,7 @@
 </p>
 
 Piano Drills is a web app made to help people learn piano in a fun and interactive way. It turns practice into small arcade-style games so players can work on note reading, ear training, and rhythm.
+Try it out here: [https://piano-drills.netlify.app/](https://piano-drills.netlify.app/)
 
 ## Games
 
