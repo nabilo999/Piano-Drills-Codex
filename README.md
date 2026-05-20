@@ -33,4 +33,12 @@ Train your ear by listening, reacting, and matching what you hear. This game foc
 
 Work on rhythm and timing in a side-scrolling runner game where jumps are tied to musical pulse. This mode helps players develop steadier timing and better rhythmic control in a more playful format.
 
-[![Watch the Demo](https://img.youtube.com/vi/O0qW-Oi94Z4/0.jpg)](https://www.youtube.com/watch?v=O0qW-Oi94Z4)
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=O0qW-Oi94Z4">
+    <img 
+      src="https://img.youtube.com/vi/O0qW-Oi94Z4/0.jpg" 
+      alt="Watch the Demo"
+      width="75%"
+    />
+  </a>
+</p>
